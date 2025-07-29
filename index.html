@@ -439,6 +439,35 @@ dedupeBtn.onclick = () => {
             Ricomincia
           </button>
         `;
+            // Aggiungi opzione per salvare le domande sbagliate come nuova lezione
+      const wrongQuestions = quizQuestions.filter((q, i) => {
+        const correctIdx = q.answers.findIndex(a => a.correct);
+        return userAnswers[i] !== correctIdx;
+      });
+
+      if (wrongQuestions.length > 0) {
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = `Salva ${wrongQuestions.length} domande sbagliate come nuova lezione`;
+        saveBtn.className = "mt-4 bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition w-full";
+        saveBtn.onclick = () => {
+          const now = new Date();
+          const formattedDate = now.toLocaleDateString('it-IT');
+          const lessonName = `Test - ${formattedDate}`;
+
+          data.push({
+            lessonNumber: lessonName,
+            questions: wrongQuestions
+          });
+
+          saveQuestionsToStorage();
+          setupLessonMultiSelect();
+          setMessage(`Lezione salvata come "${lessonName}" con ${wrongQuestions.length} domande.`, 'green');
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Salvata!';
+        };
+        resultsDiv.appendChild(saveBtn);
+      }
+
     }
 
     // Caricamento automatico da localStorage
