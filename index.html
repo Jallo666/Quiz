@@ -124,20 +124,29 @@
       setMessage('Domande rimosse dalla memoria locale.', 'green');
     };
 
-    exportBtn.onclick = () => {
-      if (!data || data.length === 0) {
-        setMessage('Nessuna domanda da esportare.');
-        return;
-      }
+exportBtn.onclick = () => {
+  if (!data || data.length === 0) {
+    setMessage('Nessuna domanda da esportare.');
+    return;
+  }
 
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'domande_exportate.json';
-      link.click();
-      URL.revokeObjectURL(url);
-    };
+  const selectedLessons = Array.from(lessonSelect.selectedOptions).map(opt => opt.value);
+  if (selectedLessons.length === 0) {
+    setMessage('Seleziona almeno una lezione da esportare.');
+    return;
+  }
+
+  const filteredData = data.filter(lesson => selectedLessons.includes(lesson.lessonNumber));
+
+  const blob = new Blob([JSON.stringify(filteredData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'domande_selezionate.json';
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
 
 dedupeBtn.onclick = () => {
   if (!data || data.length === 0) {
@@ -259,7 +268,7 @@ dedupeBtn.onclick = () => {
       data.forEach(lesson => {
         const option = document.createElement('option');
         option.value = lesson.lessonNumber;
-        option.textContent = `Lezione ${lesson.lessonNumber}`;
+option.textContent = `Lezione ${lesson.lessonNumber} (${lesson.questions.length})`;
         lessonSelect.appendChild(option);
       });
     }
@@ -452,7 +461,8 @@ dedupeBtn.onclick = () => {
         saveBtn.onclick = () => {
           const now = new Date();
           const formattedDate = now.toLocaleDateString('it-IT');
-          const lessonName = `Test - ${formattedDate}`;
+const lessonName = prompt("Inserisci un nome per la nuova lezione sbagliata:", `Lezione sbagliate`);
+if (!lessonName) return;
 
           data.push({
             lessonNumber: lessonName,
