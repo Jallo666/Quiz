@@ -43,6 +43,10 @@
         Inizia Quiz
       </button>
 
+      <button id="basketModeBtn" class="hidden bg-yellow-600 text-white py-2 rounded hover:bg-yellow-700 transition w-full">
+  Apri Paniere (ripasso)
+</button>
+
       <button id="clearStorageBtn" class="bg-red-600 text-white py-2 rounded hover:bg-red-700 transition w-full">
         Cancella Tutte le Domande Salvate
       </button>
@@ -63,6 +67,8 @@
     <div id="message" class="text-center text-red-600 font-semibold mb-4"></div>
     <div id="quiz" class="bg-white p-6 rounded shadow hidden"></div>
     <div id="results" class="bg-white p-6 rounded shadow hidden"></div>
+    <div id="basketView" class="bg-white p-6 rounded shadow hidden"></div>
+
   </div>
 </div>
 
@@ -277,6 +283,11 @@ option.textContent = `Lezione ${lesson.lessonNumber} (${lesson.questions.length}
       Array.from(lessonSelect.options).forEach(opt => opt.selected = true);
     };
 
+    lessonSelect.addEventListener('change', () => {
+  const selected = Array.from(lessonSelect.selectedOptions);
+  document.getElementById('basketModeBtn').classList.toggle('hidden', selected.length === 0);
+});
+
     startCustomBtn.onclick = () => {
       clearMessage();
       const selectedOptions = Array.from(lessonSelect.selectedOptions);
@@ -479,6 +490,51 @@ if (!lessonName) return;
       }
 
     }
+document.getElementById('basketModeBtn').onclick = () => {
+  clearMessage();
+  const selectedOptions = Array.from(lessonSelect.selectedOptions);
+  if (!selectedOptions.length) {
+    setMessage('Seleziona almeno una lezione');
+    return;
+  }
+
+  const selectedLessons = data.filter(l => selectedOptions.map(o => o.value).includes(l.lessonNumber));
+  let allQuestions = selectedLessons.flatMap(l => l.questions);
+  if (shuffleCheckbox.checked) allQuestions = shuffleArray(allQuestions);
+
+  const container = document.getElementById('basketView');
+  container.classList.remove('hidden');
+  quizDiv.classList.add('hidden');
+  resultsDiv.classList.add('hidden');
+
+  container.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4">Paniere - Domande e Risposte</h2>
+    <button id="closeBasketBtn" class="mb-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+      Chiudi Paniere
+    </button>
+    <div class="space-y-6">
+      ${allQuestions.map((q, idx) => `
+        <div class="border-b pb-4">
+          <div class="font-semibold text-gray-800 mb-2">Domanda ${idx + 1}:</div>
+          <div class="mb-2">${q.question}</div>
+          ${q.image ? `<img src="${q.image}" class="mb-4 max-h-64" />` : ''}
+          <ul class="list-disc ml-5 text-gray-800">
+            ${q.answers.map(a => `
+              <li class="${a.correct ? 'font-bold text-green-700' : ''}">
+                ${a.text}
+              </li>`).join('')}
+          </ul>
+          ${q.explanation ? `<div class="mt-2 text-sm text-gray-600 italic">Spiegazione: ${q.explanation}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById('closeBasketBtn').onclick = () => {
+    container.classList.add('hidden');
+    container.innerHTML = '';
+  };
+};
 
     // Caricamento automatico da localStorage
     loadQuestionsFromStorage();
