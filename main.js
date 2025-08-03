@@ -1,0 +1,471 @@
+ (() => {
+    let data = [];
+    let quizQuestions = [];
+    let baseQuestionSet = [];
+    let currentIndex = 0;
+    let userAnswers = [];
+    let showingAnswer = false;
+    let soulslike = false;
+    let shuffle = true;
+
+    const fileInput = document.getElementById('fileInput');
+    const loadBtn = document.getElementById('loadBtn');
+    const controls = document.getElementById('controls');
+    const lessonSelect = document.getElementById('multiLessonSelect');
+    const customCount = document.getElementById('customQuestionCount');
+    const shuffleCheckbox = document.getElementById('shuffleCheckbox');
+    const soulslikeCheckbox = document.getElementById('soulslikeCheckbox');
+    const startCustomBtn = document.getElementById('startCustomBtn');
+    const clearStorageBtn = document.getElementById('clearStorageBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const quizDiv = document.getElementById('quiz');
+    const resultsDiv = document.getElementById('results');
+    const messageDiv = document.getElementById('message');
+
+    const setMessage = (msg, color = 'red') => {
+      messageDiv.textContent = msg;
+      messageDiv.className = `text-center text-${color}-600 font-semibold mb-4`;
+    };
+    const clearMessage = () => messageDiv.textContent = '';
+
+    function saveQuestionsToStorage() {
+      localStorage.setItem('quizData', JSON.stringify(data));
+    }
+
+    function loadQuestionsFromStorage() {
+      const stored = localStorage.getItem('quizData');
+      if (stored) {
+        try {
+          data = JSON.parse(stored);
+          setupLessonMultiSelect();
+          controls.classList.remove('hidden');
+          setMessage('Domande caricate da memoria locale.', 'green');
+        } catch (e) {
+          localStorage.removeItem('quizData');
+          console.error('Errore nel parsing dello storage:', e);
+        }
+      }
+    }
+
+    clearStorageBtn.onclick = () => {
+      localStorage.removeItem('quizData');
+      data = [];
+      setupLessonMultiSelect();
+      controls.classList.add('hidden');
+      setMessage('Domande rimosse dalla memoria locale.', 'green');
+    };
+
+exportBtn.onclick = () => {
+  if (!data || data.length === 0) {
+    setMessage('Nessuna domanda da esportare.');
+    return;
+  }
+
+  const selectedLessons = Array.from(lessonSelect.selectedOptions).map(opt => opt.value);
+  if (selectedLessons.length === 0) {
+    setMessage('Seleziona almeno una lezione da esportare.');
+    return;
+  }
+
+  const filteredData = data.filter(lesson => selectedLessons.includes(lesson.lessonNumber));
+
+  const blob = new Blob([JSON.stringify(filteredData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'domande_selezionate.json';
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+
+dedupeBtn.onclick = () => {
+  if (!data || data.length === 0) {
+    setMessage('Nessuna domanda da processare.');
+    return;
+  }
+
+  const seen = new Map();
+  const cleanedLessons = [];
+
+  let removed = 0;
+  let totalBefore = 0;
+  let totalAfter = 0;
+
+  data.forEach(lesson => {
+    const newQuestions = [];
+
+    lesson.questions.forEach(q => {
+      totalBefore++;
+
+      const key = q.question.trim().toLowerCase();
+
+      const existing = seen.get(key);
+
+      const hasPlaceholders = q.answers.some(a => a.text.includes('???'));
+
+      if (!existing) {
+        seen.set(key, { q, hasPlaceholders });
+        newQuestions.push(q);
+      } else {
+        // Teniamo quella senza ???
+        if (existing.hasPlaceholders && !hasPlaceholders) {
+          seen.set(key, { q, hasPlaceholders });
+        } else {
+          removed++;
+        }
+      }
+    });
+
+    if (newQuestions.length > 0) {
+      cleanedLessons.push({ ...lesson, questions: newQuestions });
+    }
+  });
+
+  // Ricompattiamo
+  const allQs = Array.from(seen.values()).map(e => e.q);
+  const newChunks = [];
+  for (let i = 0; i < allQs.length; i += 10) {
+    newChunks.push(allQs.slice(i, i + 10));
+  }
+
+  data = newChunks.map((chunk, idx) => ({
+    lessonNumber: `DEDUPED ${idx + 1}`,
+    questions: chunk
+  }));
+
+  saveQuestionsToStorage();
+  setupLessonMultiSelect();
+  setMessage(`Rimossi ${removed} duplicati. Ora ci sono ${allQs.length} domande uniche.`, 'green');
+  updateDedupeButton();
+};
+
+
+    loadBtn.onclick = () => {
+      clearMessage();
+      if (!fileInput.files.length) {
+        setMessage('Seleziona un file JSON');
+        return;
+      }
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+
+          if (Array.isArray(parsed) && parsed[0]?.question_text) {
+            const formatted = parsed.map(d => ({
+              question: d.question_text,
+              image: d.image_path || null,
+              answers: d.options.map(opt => ({
+                text: opt,
+                correct: opt === d.correct_answer
+              })),
+              explanation: d.explanation || ''
+            }));
+
+            const chunks = [];
+            for (let i = 0; i < formatted.length; i += 10) {
+              chunks.push(formatted.slice(i, i + 10));
+            }
+
+            chunks.forEach((chunk, index) => {
+              data.push({
+                lessonNumber: `INEDITE ${index + 1}`,
+                questions: chunk
+              });
+            });
+
+            setMessage(`Inedite caricate in ${chunks.length} lezioni da 10 domande`, 'green');
+          } else if (Array.isArray(parsed)) {
+            data = parsed;
+            setMessage('File caricato con successo!', 'green');
+          } else {
+            throw new Error("Formato JSON non riconosciuto");
+          }
+
+          saveQuestionsToStorage();
+          setupLessonMultiSelect();
+          controls.classList.remove('hidden');
+        } catch (err) {
+          setMessage('Errore nel parsing JSON: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    function setupLessonMultiSelect() {
+      lessonSelect.innerHTML = '';
+      data.forEach(lesson => {
+        const option = document.createElement('option');
+        option.value = lesson.lessonNumber;
+option.textContent = `Lezione ${lesson.lessonNumber} (${lesson.questions.length})`;
+        lessonSelect.appendChild(option);
+      });
+    }
+
+    document.getElementById('selectAllLessonsBtn').onclick = () => {
+      Array.from(lessonSelect.options).forEach(opt => opt.selected = true);
+    };
+
+    lessonSelect.addEventListener('change', () => {
+  const selected = Array.from(lessonSelect.selectedOptions);
+  document.getElementById('basketModeBtn').classList.toggle('hidden', selected.length === 0);
+});
+
+    startCustomBtn.onclick = () => {
+      clearMessage();
+      const selectedOptions = Array.from(lessonSelect.selectedOptions);
+      if (!selectedOptions.length) {
+        setMessage('Seleziona almeno una lezione');
+        return;
+      }
+
+      let selectedLessons = data.filter(l => selectedOptions.map(o => o.value).includes(l.lessonNumber));
+      let allQuestions = selectedLessons.flatMap(l => l.questions);
+      const count = parseInt(customCount.value);
+
+      if (count && count > 0) {
+        if (count > allQuestions.length) {
+          setMessage('Numero di domande richiesto superiore al totale disponibile');
+          return;
+        }
+        allQuestions = getRandomQuestions(allQuestions, count);
+      }
+
+      baseQuestionSet = allQuestions;
+      soulslike = soulslikeCheckbox.checked;
+      shuffle = shuffleCheckbox.checked;
+
+      generateQuizFromBase();
+    };
+
+    function generateQuizFromBase() {
+      let qCopy = [...baseQuestionSet];
+      if (shuffle) qCopy = shuffleArray(qCopy);
+      qCopy = qCopy.map(q => ({
+        ...q,
+        answers: shuffleArray([...q.answers])
+      }));
+      quizQuestions = qCopy;
+      startQuiz(quizQuestions);
+    }
+
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function getRandomQuestions(arr, num) {
+      const copy = [...arr];
+      const result = [];
+      for (let i = 0; i < num; i++) {
+        const idx = Math.floor(Math.random() * copy.length);
+        result.push(copy.splice(idx, 1)[0]);
+      }
+      return result;
+    }
+
+    function startQuiz(questions) {
+      currentIndex = 0;
+      userAnswers = new Array(questions.length).fill(null);
+      showingAnswer = false;
+      clearMessage();
+      resultsDiv.classList.add('hidden');
+      quizDiv.classList.remove('hidden');
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const q = quizQuestions[currentIndex];
+      showingAnswer = false;
+
+      quizDiv.innerHTML = `
+        <div class="mb-4 text-lg font-semibold text-gray-800">
+          Domanda ${currentIndex + 1} di ${quizQuestions.length}:
+        </div>
+        <div class="mb-6 text-gray-700">${q.question}</div>
+        ${q.img ? `<img src="${q.img}" class="mb-6 max-h-64 mx-auto" />` : ''}
+        <form id="answersForm" class="space-y-3 mb-6">
+          ${q.answers.map((a, i) => `
+            <label class="block cursor-pointer text-gray-900 hover:text-blue-600 transition">
+              <input type="radio" name="answer" value="${i}" class="mr-2" />
+              ${a.text}
+            </label>`).join('')}
+        </form>
+        <button id="showCorrectBtn" class="mb-2 text-sm text-blue-600 hover:underline">Vedi risposta corretta</button>
+        <button id="nextBtn" class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition w-full">
+          ${currentIndex === quizQuestions.length - 1 ? 'Termina Quiz' : 'Prossima Domanda'}
+        </button>
+      `;
+
+      document.getElementById('showCorrectBtn').onclick = () => showCorrectAnswer();
+
+      document.getElementById('nextBtn').onclick = () => {
+        const form = document.getElementById('answersForm');
+        const selected = form.answer?.value;
+        if (!selected) {
+          setMessage('Seleziona una risposta!');
+          return;
+        }
+        clearMessage();
+        const userAnswer = parseInt(selected);
+        userAnswers[currentIndex] = userAnswer;
+
+        const correctIndex = q.answers.findIndex(a => a.correct);
+        showCorrectAnswer();
+
+        if (soulslike && userAnswer !== correctIndex) {
+          document.getElementById('nextBtn').textContent = 'Ricomincia il Quiz';
+          document.getElementById('nextBtn').onclick = () => generateQuizFromBase();
+          return;
+        }
+
+        document.getElementById('nextBtn').textContent = (currentIndex === quizQuestions.length - 1) ? 'Visualizza Risultati' : 'Avanti';
+        document.getElementById('nextBtn').onclick = () => {
+          if (currentIndex < quizQuestions.length - 1) {
+            currentIndex++;
+            renderQuestion();
+          } else {
+            showResults();
+          }
+        };
+      };
+    }
+
+    function showCorrectAnswer() {
+      const q = quizQuestions[currentIndex];
+      const form = document.getElementById('answersForm');
+      const inputs = form.querySelectorAll('input[name="answer"]');
+      const userAnswer = userAnswers[currentIndex];
+      const correctAnswerIndex = q.answers.findIndex(a => a.correct);
+
+      inputs.forEach((input, i) => {
+        input.disabled = true;
+        const label = input.parentElement;
+        label.classList.remove('text-gray-900', 'hover:text-blue-600');
+        if (i === correctAnswerIndex) label.classList.add('bg-green-200', 'text-green-900', 'font-semibold');
+        if (i === userAnswer && userAnswer !== correctAnswerIndex) label.classList.add('bg-red-200', 'text-red-900', 'font-semibold');
+      });
+    }
+
+    function showResults() {
+      quizDiv.classList.add('hidden');
+      resultsDiv.classList.remove('hidden');
+
+      let correctCount = 0;
+      const resultsHTML = quizQuestions.map((q, i) => {
+        const userAnswer = userAnswers[i];
+        const correctAnswerIndex = q.answers.findIndex(a => a.correct);
+        const isCorrect = userAnswer === correctAnswerIndex;
+        if (isCorrect) correctCount++;
+        return `
+            <div class="mb-4">
+              <div class="font-semibold text-gray-800 mb-1">Domanda ${i + 1}:</div>
+              <div class="mb-1">${q.question}</div>
+              <div class="${isCorrect ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}">
+                La tua risposta: ${q.answers[userAnswer]?.text || 'Nessuna'} ${isCorrect ? '✓' : '✗'}
+              </div>
+              <div class="text-gray-500 text-sm">Risposta corretta: ${q.answers[correctAnswerIndex].text}</div>
+            </div>
+            <hr class="border-gray-300" />
+          `;
+      }).join('');
+
+      resultsDiv.innerHTML = `
+          <h2 class="text-2xl font-bold mb-4">Risultati</h2>
+          <p class="mb-6">Hai risposto correttamente a <strong>${correctCount}</strong> su <strong>${quizQuestions.length}</strong> domande.</p>
+          ${resultsHTML}
+          <button onclick="location.reload()" class="mt-6 bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700 transition w-full">
+            Ricomincia
+          </button>
+        `;
+            // Aggiungi opzione per salvare le domande sbagliate come nuova lezione
+      const wrongQuestions = quizQuestions.filter((q, i) => {
+        const correctIdx = q.answers.findIndex(a => a.correct);
+        return userAnswers[i] !== correctIdx;
+      });
+
+      if (wrongQuestions.length > 0) {
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = `Salva ${wrongQuestions.length} domande sbagliate come nuova lezione`;
+        saveBtn.className = "mt-4 bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition w-full";
+        saveBtn.onclick = () => {
+          const now = new Date();
+          const formattedDate = now.toLocaleDateString('it-IT');
+const lessonName = prompt("Inserisci un nome per la nuova lezione sbagliata:", `Lezione sbagliate`);
+if (!lessonName) return;
+
+          data.push({
+            lessonNumber: lessonName,
+            questions: wrongQuestions
+          });
+
+          saveQuestionsToStorage();
+          setupLessonMultiSelect();
+          setMessage(`Lezione salvata come "${lessonName}" con ${wrongQuestions.length} domande.`, 'green');
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Salvata!';
+        };
+        resultsDiv.appendChild(saveBtn);
+      }
+
+    }
+document.getElementById('basketModeBtn').onclick = () => {
+  clearMessage();
+  const selectedOptions = Array.from(lessonSelect.selectedOptions);
+  if (!selectedOptions.length) {
+    setMessage('Seleziona almeno una lezione');
+    return;
+  }
+
+  const selectedLessons = data.filter(l => selectedOptions.map(o => o.value).includes(l.lessonNumber));
+  let allQuestions = selectedLessons.flatMap(l => l.questions);
+  if (shuffleCheckbox.checked) allQuestions = shuffleArray(allQuestions);
+
+  const container = document.getElementById('basketView');
+  container.classList.remove('hidden');
+  quizDiv.classList.add('hidden');
+  resultsDiv.classList.add('hidden');
+
+  container.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4">Paniere - Domande e Risposte</h2>
+    <button id="closeBasketBtn" class="mb-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+      Chiudi Paniere
+    </button>
+    <div class="space-y-6">
+      ${allQuestions.map((q, idx) => `
+        <div class="border-b pb-4">
+          <div class="font-semibold text-gray-800 mb-2">Domanda ${idx + 1}:</div>
+          <div class="mb-2">${q.question}</div>
+          ${q.img ? `<img src="${q.img}" class="mb-4 max-h-64" />` : ''}
+          <ul class="list-disc ml-5 text-gray-800">
+            ${q.answers.map(a => `
+              <li class="${a.correct ? 'font-bold text-green-700' : ''}">
+                ${a.text}
+              </li>`).join('')}
+          </ul>
+          ${q.explanation ? `<div class="mt-2 text-sm text-gray-600 italic">Spiegazione: ${q.explanation}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById('closeBasketBtn').onclick = () => {
+    container.classList.add('hidden');
+    container.innerHTML = '';
+  };
+};
+
+    // Caricamento automatico da localStorage
+    loadQuestionsFromStorage();
+  })();
+
+function updateDedupeButton() {
+  const total = data.flatMap(l => l.questions).length;
+  dedupeBtn.textContent = `Cancella Doppioni (${total} domande)`;
+}
