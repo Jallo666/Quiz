@@ -1,113 +1,12 @@
-(() => {
-  const lessons = document.querySelectorAll('.lesson-content');
-  const allResults = [];
+# React + Vite
 
-  lessons.forEach(lesson => {
-    const lessonTitle = lesson.querySelector('h2').textContent.trim();
-    const lessonNumberMatch = lessonTitle.match(/Lezione:\s*(\d+)/i);
-    const lessonNumber = lessonNumberMatch ? lessonNumberMatch[1] : null;
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-    const rows = lesson.querySelectorAll('table tbody tr');
-    const questions = [];
+Currently, two official plugins are available:
 
-    rows.forEach((row, index) => {
-      const questionCell = row.querySelector('td:first-child');
-      const answersCell = row.querySelector('td:last-child');
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-      // Estrai l'immagine dalla domanda, se presente
-      const imgTag = questionCell.querySelector('img');
-      const questionImg = imgTag ? imgTag.src : "";
+## Expanding the ESLint configuration
 
-      // Estrai il testo della domanda rimuovendo "DOMANDA X:" e qualsiasi immagine
-      const rawQuestionHTML = questionCell.innerHTML
-        .replace(/<img[^>]*>/g, '') // rimuovi l'immagine
-        .replace(/<br\s*\/?>/gi, '') // rimuovi <br>
-        .replace(/^\s*DOMANDA \d+:\s*/i, '')
-        .trim();
-
-      const questionText = rawQuestionHTML.replace(/<\/?[^>]+(>|$)/g, "").trim(); // togli HTML rimanente
-
-      // Estrai le risposte
-      const answers = [];
-      answersCell.querySelectorAll('li').forEach(li => {
-        const isCorrect = li.textContent.includes('[CORRETTA]');
-        const text = li.textContent.replace('[CORRETTA]', '').trim();
-        answers.push({
-          text,
-          correct: isCorrect,
-          img: ""  // campo immagine risposta, vuoto per ora
-        });
-      });
-
-      questions.push({
-        id: `${lessonNumber}-question-${index + 1}`,
-        question: questionText,
-        img: questionImg,
-        answers: answers
-      });
-    });
-
-    allResults.push({
-      lessonNumber,
-      questions
-    });
-  });
-
-  console.log(JSON.stringify(allResults, null, 2));
-  return allResults;
-})();
-(() => {
-  const lessons = document.querySelectorAll('.lesson-content');
-  const allResults = [];
-
-  lessons.forEach(lesson => {
-    const lessonTitle = lesson.querySelector('h2').textContent.trim();
-    const lessonNumberMatch = lessonTitle.match(/Lezione:\s*(\d+)/i);
-    const lessonNumber = lessonNumberMatch ? lessonNumberMatch[1] : null;
-
-    const rows = lesson.querySelectorAll('table tbody tr');
-    const questions = [];
-
-    rows.forEach((row, index) => {
-      const questionCell = row.querySelector('td:first-child');
-      const answersCell = row.querySelector('td:last-child');
-
-      // Estrai immagine domanda, se presente
-      const imgTag = questionCell.querySelector('img');
-      const questionImg = imgTag ? imgTag.src : "";
-
-      // Estrai solo il testo (senza HTML e DOMANDA X:)
-      let rawText = questionCell.textContent.trim();
-      rawText = rawText.replace(/^DOMANDA\s*\d+:\s*/i, '').trim();
-
-      // Estrai le risposte
-      const answers = [];
-      answersCell.querySelectorAll('li').forEach(li => {
-        const isCorrect = li.textContent.includes('[CORRETTA]');
-        const text = li.textContent.replace('[CORRETTA]', '').trim();
-
-        // Potresti estrarre immagine se le risposte ne avranno (attualmente lasciamo img vuoto)
-        answers.push({
-          text,
-          correct: isCorrect,
-          img: ""
-        });
-      });
-
-      questions.push({
-        id: `${lessonNumber}-question-${index + 1}`,
-        question: rawText,
-        img: questionImg,
-        answers: answers
-      });
-    });
-
-    allResults.push({
-      lessonNumber,
-      questions
-    });
-  });
-
-  console.log(JSON.stringify(allResults, null, 2));
-  return allResults;
-})();
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
