@@ -1,15 +1,26 @@
-import { useState } from 'react'
-import QuizApp from './components/QuizApp'
-import './App.css'
+import React, { useState } from 'react';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import Content from './components/Content'; 
 
-function App() {
-  const [count, setCount] = useState(0)
+
+export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activePage, setActivePage] = useState('home');
 
   return (
-    <>
-      <QuizApp />
-    </>
-  )
-}
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activePage={activePage}
+        onNavigate={setActivePage}
+      />
 
-export default App
+      <div className="flex-1 flex flex-col">
+        <Header onOpen={() => setSidebarOpen(true)} />
+        <Content activePage={activePage} />
+      </div>
+    </div>
+  );
+}
