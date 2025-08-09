@@ -6,10 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-  "build": "vite build",
-"postbuild": "copy dist\\index.html dist\\404.html",
-  "deploy": "gh-pages -d dist",
-  "build-and-deploy": "npm run build && npm run postbuild && npm run deploy"
+  "build": "vite build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
