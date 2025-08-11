@@ -61,6 +61,30 @@ const deleteQuestion = (lessonNumber, questionId) => {
   saveAllLessons(lessons);
 };
 
+const addLessons = (newLessons) => {
+  const existingLessons = getAllLessons();
+
+  newLessons.forEach(newLesson => {
+    const lessonIndex = existingLessons.findIndex(l => l.lessonNumber === newLesson.lessonNumber);
+
+    if (lessonIndex === -1) {
+      // Lezione nuova: aggiungo direttamente
+      existingLessons.push(newLesson);
+    } else {
+      // Lezione esistente: aggiungo solo nuove domande (evitando duplicati tramite id)
+      const existingQuestionIds = new Set(existingLessons[lessonIndex].questions.map(q => q.id));
+      newLesson.questions.forEach(q => {
+        if (!existingQuestionIds.has(q.id)) {
+          existingLessons[lessonIndex].questions.push(q);
+        }
+      });
+    }
+  });
+
+  saveAllLessons(existingLessons);
+};
+
+
 const clearAll = () => {
   localStorage.removeItem(STORAGE_KEY);
 };
@@ -72,5 +96,6 @@ export default {
   updateQuestion,
   deleteQuestion,
   clearAll,
-  saveAllLessons
+  saveAllLessons,
+  addLessons
 };

@@ -483,16 +483,24 @@ export default function Questions() {
                             className="max-h-32 rounded mb-1 object-contain"
                           />
                         )}
-                        <ul className="ml-4 list-disc text-sm">
-                          {q.answers.map((a, i) => (
-                            <li
-                              key={i}
-                              className={a.correct ? 'text-green-700 font-semibold' : ''}
-                            >
-                              {a.text}
-                            </li>
-                          ))}
-                        </ul>
+<ul className="ml-4 list-disc text-sm">
+  {q.answers.map((a, i) => (
+    <li
+      key={i}
+      className={a.correct ? 'text-green-700 font-semibold' : ''}
+    >
+      {a.text}
+      {a.img && (
+        <img
+          src={a.img}
+          alt={`Immagine risposta ${i + 1}`}
+          className="max-h-16 rounded mt-1 object-contain"
+        />
+      )}
+    </li>
+  ))}
+</ul>
+
                       </div>
                       {!searchGlobal && (
                         <div className="flex flex-col space-y-1 ml-4">
