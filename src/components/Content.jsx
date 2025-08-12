@@ -2,13 +2,13 @@ import React from 'react';
 import Import from './Import';
 import Questions from './Questions/Questions';
 import DatabaseManager from './DBManager';
+import QuizHome from './Quiz/QuizHome';
 export default function Content({ activePage }) {
   switch (activePage) {
     case 'home':
       return (
         <main className="p-6 overflow-auto">
-          <h2 className="text-3xl font-semibold mb-4">Home</h2>
-          <p>Benvenuto nella pagina principale del Quiz.</p>
+          <QuizHome />
         </main>
       );
     case 'questions':

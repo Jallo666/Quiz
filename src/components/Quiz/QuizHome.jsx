@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import questionService from '../../services/questionService';
+import QuestionTable from '../Questions/QuestionTable';
 import LessonTable from '../Lessons/LessonTable';
-import QuestionTable from './QuestionTable';
-import QuestionEditor from './questionEditor';
-
-export default function Questions() {
+import QuestionEditor from '../Questions/questionEditor';  
+import { FiPlus } from 'react-icons/fi';
+export default function QuizConfigurator() {
   const [lessons, setLessons] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [filterLesson, setFilterLesson] = useState('');
