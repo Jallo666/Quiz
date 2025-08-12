@@ -3,10 +3,11 @@ import questionService from '../../services/questionService';
 import LessonTable from '../Lessons/LessonTable';
 import QuestionTable from './QuestionTable';
 import QuestionEditor from './questionEditor';
+import { FiPlus, FiSearch } from 'react-icons/fi';
 
 export default function Questions() {
   const [lessons, setLessons] = useState([]);
-  const [selectedLesson, setSelectedLesson] = useState(null);
+  const [selectedLessons, setSelectedLessons] = useState([]); // <-- array invece di singolo
   const [filterLesson, setFilterLesson] = useState('');
   const [searchGlobal, setSearchGlobal] = useState('');
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -19,7 +20,7 @@ export default function Questions() {
       setLoading(true);
       const data = await questionService.getAllLessons();
       setLessons(data);
-      if (data.length) setSelectedLesson(data[0]);
+      if (data.length) setSelectedLessons([data[0]]); // default: prima lezione selezionata
       setLoading(false);
     }
     fetchLessons();
@@ -32,7 +33,38 @@ export default function Questions() {
     setLoading(false);
   }
 
-  // CRUD lezioni
+  // Toggle selezione singola
+  function toggleLessonSelection(lesson) {
+    setSelectedLessons(prev => {
+      if (prev.some(l => l.lessonNumber === lesson.lessonNumber)) {
+        return prev.filter(l => l.lessonNumber !== lesson.lessonNumber);
+      } else {
+        return [...prev, lesson];
+      }
+    });
+  }
+
+  // Seleziona / deseleziona tutto
+  function toggleSelectAll(filteredLessons) {
+    const allSelected = filteredLessons.every(l =>
+      selectedLessons.some(sl => sl.lessonNumber === l.lessonNumber)
+    );
+    if (allSelected) {
+      setSelectedLessons(prev =>
+        prev.filter(l => !filteredLessons.some(fl => fl.lessonNumber === l.lessonNumber))
+      );
+    } else {
+      const merged = [...selectedLessons];
+      filteredLessons.forEach(fl => {
+        if (!merged.some(l => l.lessonNumber === fl.lessonNumber)) {
+          merged.push(fl);
+        }
+      });
+      setSelectedLessons(merged);
+    }
+  }
+
+  // CRUD lezioni (invariate tranne rename/delete per gestione array)
   async function handleCreateLesson() {
     const newName = prompt('Inserisci nome nuova lezione');
     if (!newName) return;
@@ -43,7 +75,7 @@ export default function Questions() {
     const newLesson = { lessonNumber: newName, questions: [] };
     const newLessons = [...lessons, newLesson];
     await refreshLessons(newLessons);
-    setSelectedLesson(newLesson);
+    setSelectedLessons(prev => [...prev, newLesson]);
   }
 
   async function handleDuplicateLesson(lesson) {
@@ -59,16 +91,14 @@ export default function Questions() {
     };
     const newLessons = [...lessons, newLesson];
     await refreshLessons(newLessons);
-    setSelectedLesson(newLesson);
+    setSelectedLessons(prev => [...prev, newLesson]);
   }
 
   async function handleDeleteLesson(lesson) {
     if (!window.confirm(`Eliminare la lezione "${lesson.lessonNumber}"?`)) return;
     const newLessons = lessons.filter(l => l.lessonNumber !== lesson.lessonNumber);
     await refreshLessons(newLessons);
-    if (selectedLesson?.lessonNumber === lesson.lessonNumber) {
-      setSelectedLesson(newLessons[0] || null);
-    }
+    setSelectedLessons(prev => prev.filter(l => l.lessonNumber !== lesson.lessonNumber));
   }
 
   async function handleRenameLesson() {
@@ -91,56 +121,69 @@ export default function Questions() {
     );
     await refreshLessons(newLessons);
 
-    if (selectedLesson?.lessonNumber === renamingLesson) {
-      setSelectedLesson({ ...selectedLesson, lessonNumber: newLessonName.trim() });
-    }
+    setSelectedLessons(prev =>
+      prev.map(l =>
+        l.lessonNumber === renamingLesson
+          ? { ...l, lessonNumber: newLessonName.trim() }
+          : l
+      )
+    );
+
     setRenamingLesson(null);
   }
 
   // CRUD domande
   async function handleSaveQuestion(updatedQuestion) {
-    if (!selectedLesson) return;
+    if (selectedLessons.length !== 1) {
+      alert('Per aggiungere o modificare una domanda devi avere UNA sola lezione selezionata.');
+      return;
+    }
+
+    const targetLesson = selectedLessons[0];
 
     const newLessons = lessons.map(l => {
-      if (l.lessonNumber !== selectedLesson.lessonNumber) return l;
+      if (l.lessonNumber !== targetLesson.lessonNumber) return l;
 
       const questions = [...l.questions];
       if (updatedQuestion.id) {
         const idx = questions.findIndex(q => q.id === updatedQuestion.id);
         if (idx !== -1) questions[idx] = updatedQuestion;
       } else {
-        const newId = `${selectedLesson.lessonNumber}-q${Date.now()}`;
+        const newId = `${targetLesson.lessonNumber}-q${Date.now()}`;
         questions.push({ ...updatedQuestion, id: newId });
       }
       return { ...l, questions };
     });
 
     await refreshLessons(newLessons);
-    setSelectedLesson(newLessons.find(l => l.lessonNumber === selectedLesson.lessonNumber));
+    const updatedTarget = newLessons.find(l => l.lessonNumber === targetLesson.lessonNumber);
+    setSelectedLessons([updatedTarget]);
     setEditingQuestion(null);
   }
 
   async function handleDeleteQuestion(id) {
-    if (!selectedLesson) return;
+    if (selectedLessons.length !== 1) {
+      alert('Puoi eliminare domande solo se una sola lezione è selezionata.');
+      return;
+    }
 
+    const targetLesson = selectedLessons[0];
     if (!window.confirm('Eliminare questa domanda?')) return;
 
     const newLessons = lessons.map(l => {
-      if (l.lessonNumber !== selectedLesson.lessonNumber) return l;
+      if (l.lessonNumber !== targetLesson.lessonNumber) return l;
       return { ...l, questions: l.questions.filter(q => q.id !== id) };
     });
 
     await refreshLessons(newLessons);
-    setSelectedLesson(newLessons.find(l => l.lessonNumber === selectedLesson.lessonNumber));
+    const updatedTarget = newLessons.find(l => l.lessonNumber === targetLesson.lessonNumber);
+    setSelectedLessons([updatedTarget]);
   }
 
-  // Filtra lezioni per filtro
   const filteredLessons = lessons.filter(l =>
     l.lessonNumber.toLowerCase().includes(filterLesson.toLowerCase())
   );
 
-  // Se c’è ricerca globale → mostro SOLO domande che matchano in tutte le lezioni
-  // Altrimenti mostro quelle della lezione selezionata
   let visibleLessons = [];
   if (searchGlobal.trim()) {
     const search = searchGlobal.toLowerCase();
@@ -156,8 +199,8 @@ export default function Questions() {
           : null;
       })
       .filter(Boolean);
-  } else if (selectedLesson) {
-    visibleLessons = filteredLessons.filter(l => l.lessonNumber === selectedLesson.lessonNumber);
+  } else {
+    visibleLessons = selectedLessons;
   }
 
   if (loading) {
@@ -169,11 +212,12 @@ export default function Questions() {
       {/* Sidebar lezioni */}
       <LessonTable
         lessons={lessons}
-        selectedLesson={selectedLesson}
+        selectedLessons={selectedLessons}
         filterLesson={filterLesson}
         renamingLesson={renamingLesson}
         newLessonName={newLessonName}
-        onSelectLesson={setSelectedLesson}
+        onToggleLessonSelection={toggleLessonSelection}
+        onSelectAll={() => toggleSelectAll(filteredLessons)}
         onFilterChange={setFilterLesson}
         onCreateLesson={handleCreateLesson}
         onDuplicateLesson={handleDuplicateLesson}
@@ -185,35 +229,41 @@ export default function Questions() {
       />
 
       {/* Pannello domande */}
-      <div className="md:w-2/3 flex flex-col h-full">
+      <div className="md:w-3/4 flex flex-col h-full">
         {/* Ricerca globale */}
-        <div className="mb-4 flex space-x-2 items-center">
-          <input
-            type="text"
-            placeholder="Ricerca globale tra tutte le domande..."
-            className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchGlobal}
-            onChange={e => setSearchGlobal(e.target.value)}
-          />
+        <div className="flex items-center space-x-3 mb-4 p-2 border border-gray-300 rounded shadow-sm bg-white">
+          <div className="relative flex-grow">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Cerca domande..."
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchGlobal}
+              onChange={e => setSearchGlobal(e.target.value)}
+            />
+          </div>
           <button
             onClick={() => {
-              setEditingQuestion({ question: '', answers: [{ text: '', correct: false, img: '' }], img: '' });
+              setEditingQuestion({
+                question: '',
+                answers: [{ text: '', correct: false, img: '' }],
+                img: ''
+              });
               setSearchGlobal('');
             }}
-            disabled={searchGlobal.trim().length > 0}
-            title={searchGlobal.trim() ? 'Svuota ricerca per aggiungere nuova domanda' : 'Nuova domanda'}
-            className={`px-3 py-2 rounded text-white ${
-              searchGlobal.trim()
+            disabled={searchGlobal.trim().length > 0 || selectedLessons.length !== 1}
+            title={searchGlobal.trim() ? 'Svuota la ricerca per aggiungere nuova domanda' : 'Nuova domanda'}
+            className={`flex items-center px-4 py-2 rounded text-white font-semibold transition-colors ${searchGlobal.trim() || selectedLessons.length !== 1
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700'
-            }`}
+              }`}
           >
-            ➕ Nuova domanda
+            <FiPlus className="mr-2" /> Nuova domanda
           </button>
         </div>
 
-        {!selectedLesson && !searchGlobal && (
-          <p className="text-gray-500">Seleziona una lezione per vedere le domande</p>
+        {selectedLessons.length === 0 && !searchGlobal && (
+          <p className="text-gray-500">Seleziona almeno una lezione per vedere le domande</p>
         )}
 
         <div className="overflow-auto flex-grow border border-gray-300 rounded p-2">
@@ -226,7 +276,6 @@ export default function Questions() {
         </div>
       </div>
 
-      {/* Modal editor domanda */}
       {editingQuestion && (
         <QuestionEditor
           questionData={editingQuestion}
@@ -237,7 +286,6 @@ export default function Questions() {
     </div>
   );
 
-  // Funzione per avviare il rename
   function startRenameLesson(lesson) {
     setRenamingLesson(lesson.lessonNumber);
     setNewLessonName(lesson.lessonNumber);
