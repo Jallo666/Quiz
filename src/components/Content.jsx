@@ -1,7 +1,6 @@
 import React from 'react';
 import Import from './Import';
-import Questions from './Questions';
-
+import Questions from './Questions/Questions';
 export default function Content({ activePage }) {
   switch (activePage) {
     case 'home':

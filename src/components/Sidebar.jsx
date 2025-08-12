@@ -1,7 +1,7 @@
 import React from 'react';
+import { version } from '../../package.json';
 
 export default function Sidebar({ isOpen, onClose, activePage, onNavigate }) {
-  // Link e pagine collegate
   const menuItems = [
     { label: 'Home', page: 'home' },
     { label: 'Domande', page: 'questions' },
@@ -13,37 +13,57 @@ export default function Sidebar({ isOpen, onClose, activePage, onNavigate }) {
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-40 z-40 lg:hidden"
           onClick={onClose}
-        ></div>
+          aria-hidden="true"
+        />
       )}
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-30 w-64 bg-blue-700 text-white p-4
-          transform lg:translate-x-0 transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:static lg:translate-x-0
+          fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-indigo-700 via-indigo-800 to-indigo-900
+          text-white p-6 flex flex-col justify-between
+          transform transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'}
+          lg:static lg:translate-x-0 lg:shadow-none
+          rounded-r-2xl
         `}
+        aria-label="Sidebar navigation"
       >
-        <h1 className="text-2xl font-bold mb-8">Quiz App</h1>
-        <nav className="flex flex-col space-y-4">
-          {menuItems.map(({ label, page }) => (
-            <button
-              key={page}
-              onClick={() => {
-                onNavigate(page);
-                onClose();
-              }}
-              className={`
-                text-left p-2 rounded
-                ${activePage === page ? 'bg-blue-600 font-semibold' : 'hover:bg-blue-600'}
-              `}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
+        <div>
+          <h1 className="text-3xl font-extrabold mb-10 tracking-wide drop-shadow-lg">
+            Quiz <span className="text-indigo-300">App</span>
+          </h1>
+
+          <nav className="flex flex-col space-y-3" role="navigation">
+            {menuItems.map(({ label, page }) => (
+              <button
+                key={page}
+                onClick={() => {
+                  onNavigate(page);
+                  onClose();
+                }}
+                className={`
+                  text-left px-4 py-3 rounded-lg font-semibold text-lg
+                  focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1
+                  transition-colors duration-200
+                  ${
+                    activePage === page
+                      ? 'bg-indigo-500 shadow-lg'
+                      : 'hover:bg-indigo-600 hover:shadow-md'
+                  }
+                `}
+                aria-current={activePage === page ? 'page' : undefined}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <footer className="mt-6 text-center text-indigo-300 text-sm select-none">
+          Versione {version}
+        </footer>
       </aside>
     </>
   );
