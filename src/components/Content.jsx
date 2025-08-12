@@ -1,6 +1,7 @@
 import React from 'react';
 import Import from './Import';
 import Questions from './Questions/Questions';
+import DatabaseManager from './DBManager';
 export default function Content({ activePage }) {
   switch (activePage) {
     case 'home':
@@ -10,12 +11,12 @@ export default function Content({ activePage }) {
           <p>Benvenuto nella pagina principale del Quiz.</p>
         </main>
       );
-case 'questions':
-  return (
-    <main className="p-6 overflow-auto">
-      <Questions />
-    </main>
-  );
+    case 'questions':
+      return (
+        <main className="p-6 overflow-auto">
+          <Questions />
+        </main>
+      );
     case 'stats':
       return (
         <main className="p-6 overflow-auto">
@@ -27,6 +28,12 @@ case 'questions':
       return (
         <main className="p-6 overflow-auto">
           <Import />
+        </main>
+      );
+    case 'database':
+      return (
+        <main className="p-6 overflow-auto">
+          <DatabaseManager />
         </main>
       );
     default:

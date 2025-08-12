@@ -1,101 +1,87 @@
-const STORAGE_KEY = 'quiz_lessons_questions';
+import { dbPromise } from './db';
 
-const getAllLessons = () => {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (!data) return [];
-  try {
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-};
+const STORE_NAME = 'lessons';
 
-const saveAllLessons = (lessons) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(lessons));
-};
+async function getAllLessons() {
+  const db = await dbPromise;
+  return (await db.getAll(STORE_NAME)) || [];
+}
 
-const getLesson = (lessonNumber) => {
-  const lessons = getAllLessons();
-  return lessons.find(l => l.lessonNumber === lessonNumber) || null;
-};
+async function saveAllLessons(lessons) {
+  const db = await dbPromise;
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
 
-const addQuestion = (lessonNumber, question) => {
-  const lessons = getAllLessons();
-  const lessonIndex = lessons.findIndex(l => l.lessonNumber === lessonNumber);
+  // Pulisco tutto e reinserisco
+  await store.clear();
 
-  if (lessonIndex === -1) {
-    // Se la lezione non esiste, la creo con la nuova domanda
-    lessons.push({
-      lessonNumber,
-      questions: [question],
-    });
-  } else {
-    // Altrimenti aggiungo la domanda alla lezione esistente
-    lessons[lessonIndex].questions.push(question);
+  for (const lesson of lessons) {
+    await store.put(lesson);
   }
 
-  saveAllLessons(lessons);
-};
+  await tx.done;
+}
 
-const updateQuestion = (lessonNumber, updatedQuestion) => {
-  const lessons = getAllLessons();
-  const lessonIndex = lessons.findIndex(l => l.lessonNumber === lessonNumber);
+async function getLesson(lessonNumber) {
+  const db = await dbPromise;
+  return await db.get(STORE_NAME, lessonNumber);
+}
 
-  if (lessonIndex === -1) return; // Lezione non trovata
+async function addQuestion(lessonNumber, question) {
+  const db = await dbPromise;
+  const lesson = (await db.get(STORE_NAME, lessonNumber)) || { lessonNumber, questions: [] };
+  lesson.questions.push(question);
+  await db.put(STORE_NAME, lesson);
+}
 
-  lessons[lessonIndex].questions = lessons[lessonIndex].questions.map(q =>
+async function updateQuestion(lessonNumber, updatedQuestion) {
+  const db = await dbPromise;
+  const lesson = await db.get(STORE_NAME, lessonNumber);
+  if (!lesson) return;
+
+  lesson.questions = lesson.questions.map(q =>
     q.id === updatedQuestion.id ? updatedQuestion : q
   );
+  await db.put(STORE_NAME, lesson);
+}
 
-  saveAllLessons(lessons);
-};
+async function deleteQuestion(lessonNumber, questionId) {
+  const db = await dbPromise;
+  const lesson = await db.get(STORE_NAME, lessonNumber);
+  if (!lesson) return;
 
-const deleteQuestion = (lessonNumber, questionId) => {
-  const lessons = getAllLessons();
-  const lessonIndex = lessons.findIndex(l => l.lessonNumber === lessonNumber);
+  lesson.questions = lesson.questions.filter(q => q.id !== questionId);
+  await db.put(STORE_NAME, lesson);
+}
 
-  if (lessonIndex === -1) return; // Lezione non trovata
+async function addLessons(newLessons) {
+  const db = await dbPromise;
+  for (const newLesson of newLessons) {
+    const lesson = (await db.get(STORE_NAME, newLesson.lessonNumber)) || { lessonNumber: newLesson.lessonNumber, questions: [] };
+    const existingIds = new Set(lesson.questions.map(q => q.id));
 
-  lessons[lessonIndex].questions = lessons[lessonIndex].questions.filter(q => q.id !== questionId);
+    newLesson.questions.forEach(q => {
+      if (!existingIds.has(q.id)) lesson.questions.push(q);
+    });
 
-  saveAllLessons(lessons);
-};
+    await db.put(STORE_NAME, lesson);
+  }
+}
 
-const addLessons = (newLessons) => {
-  const existingLessons = getAllLessons();
-
-  newLessons.forEach(newLesson => {
-    const lessonIndex = existingLessons.findIndex(l => l.lessonNumber === newLesson.lessonNumber);
-
-    if (lessonIndex === -1) {
-      // Lezione nuova: aggiungo direttamente
-      existingLessons.push(newLesson);
-    } else {
-      // Lezione esistente: aggiungo solo nuove domande (evitando duplicati tramite id)
-      const existingQuestionIds = new Set(existingLessons[lessonIndex].questions.map(q => q.id));
-      newLesson.questions.forEach(q => {
-        if (!existingQuestionIds.has(q.id)) {
-          existingLessons[lessonIndex].questions.push(q);
-        }
-      });
-    }
-  });
-
-  saveAllLessons(existingLessons);
-};
-
-
-const clearAll = () => {
-  localStorage.removeItem(STORAGE_KEY);
-};
+async function clearAll() {
+  const db = await dbPromise;
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  await tx.objectStore(STORE_NAME).clear();
+  await tx.done;
+}
 
 export default {
   getAllLessons,
+  saveAllLessons,
   getLesson,
   addQuestion,
   updateQuestion,
   deleteQuestion,
+  addLessons,
   clearAll,
-  saveAllLessons,
-  addLessons
 };

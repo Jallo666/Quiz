@@ -2,13 +2,13 @@ import React from 'react';
 import { version } from '../../package.json';
 
 export default function Sidebar({ isOpen, onClose, activePage, onNavigate }) {
-  const menuItems = [
-    { label: 'Home', page: 'home' },
-    { label: 'Domande', page: 'questions' },
-    { label: 'Statistiche', page: 'stats' },
-    { label: 'Import', page: 'import' },
-  ];
-
+const menuItems = [
+  { label: 'Home', page: 'home' },
+  { label: 'Domande', page: 'questions' },
+  { label: 'Statistiche', page: 'stats' },
+  { label: 'Import', page: 'import' },
+  { label: 'Database', page: 'database' }, // nuova voce
+];
   return (
     <>
       {isOpen && (

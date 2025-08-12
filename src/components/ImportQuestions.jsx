@@ -3,7 +3,8 @@ import questionService from '../services/questionService';
 
 export default function ImportQuestions() {
   const [message, setMessage] = useState('');
-  const [replaceAll, setReplaceAll] = useState(true); // default sostituisci tutto
+  const [replaceAll, setReplaceAll] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   function extractImageUrl(htmlString) {
     if (!htmlString) return "";
@@ -60,30 +61,42 @@ export default function ImportQuestions() {
     }));
   }
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    setLoading(true);
+    setMessage('');
+
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const json = JSON.parse(event.target.result);
         const transformed = transformData(json);
 
         if (replaceAll) {
-          questionService.saveAllLessons(transformed);
+          await questionService.saveAllLessons(transformed);
         } else {
-          questionService.addLessons(transformed);
+          await questionService.addLessons(transformed);
         }
 
         setMessage('Domande importate con successo!');
       } catch (err) {
         setMessage('Errore nel parsing del file JSON o formato non valido.');
+      } finally {
+        setLoading(false);
       }
     };
 
     reader.readAsText(file);
+  };
+
+  const handleClearAll = async () => {
+    setLoading(true);
+    await questionService.clearAll();
+    setMessage('Tutte le domande sono state eliminate.');
+    setLoading(false);
   };
 
   return (
@@ -106,6 +119,7 @@ export default function ImportQuestions() {
         type="file"
         accept=".json,application/json"
         onChange={handleFileChange}
+        disabled={loading}
         className="mb-6 block w-full text-indigo-700 text-sm file:mr-4 file:py-2 file:px-4 file:border file:border-indigo-300 file:rounded-lg file:text-sm file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition"
       />
 
@@ -121,13 +135,11 @@ export default function ImportQuestions() {
       )}
 
       <button
-        onClick={() => {
-          questionService.clearAll();
-          setMessage('Tutte le domande sono state eliminate.');
-        }}
-        className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg shadow-lg transition"
+        onClick={handleClearAll}
+        disabled={loading}
+        className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg shadow-lg transition"
       >
-        Elimina tutto
+        {loading ? 'Attendere...' : 'Elimina tutto'}
       </button>
     </div>
   );

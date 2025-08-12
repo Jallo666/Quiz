@@ -12,20 +12,28 @@ export default function Questions() {
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [renamingLesson, setRenamingLesson] = useState(null);
   const [newLessonName, setNewLessonName] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const data = questionService.getAllLessons();
-    setLessons(data);
-    if (data.length) setSelectedLesson(data[0]);
+    async function fetchLessons() {
+      setLoading(true);
+      const data = await questionService.getAllLessons();
+      setLessons(data);
+      if (data.length) setSelectedLesson(data[0]);
+      setLoading(false);
+    }
+    fetchLessons();
   }, []);
 
-  function refreshLessons(newLessons) {
-    questionService.saveAllLessons(newLessons);
+  async function refreshLessons(newLessons) {
+    setLoading(true);
+    await questionService.saveAllLessons(newLessons);
     setLessons(newLessons);
+    setLoading(false);
   }
 
   // CRUD lezioni
-  function handleCreateLesson() {
+  async function handleCreateLesson() {
     const newName = prompt('Inserisci nome nuova lezione');
     if (!newName) return;
     if (lessons.some(l => l.lessonNumber.toLowerCase() === newName.toLowerCase())) {
@@ -34,11 +42,11 @@ export default function Questions() {
     }
     const newLesson = { lessonNumber: newName, questions: [] };
     const newLessons = [...lessons, newLesson];
-    refreshLessons(newLessons);
+    await refreshLessons(newLessons);
     setSelectedLesson(newLesson);
   }
 
-  function handleDuplicateLesson(lesson) {
+  async function handleDuplicateLesson(lesson) {
     const newName = prompt('Inserisci nome per la lezione duplicata');
     if (!newName) return;
     if (lessons.some(l => l.lessonNumber.toLowerCase() === newName.toLowerCase())) {
@@ -50,25 +58,20 @@ export default function Questions() {
       questions: JSON.parse(JSON.stringify(lesson.questions)),
     };
     const newLessons = [...lessons, newLesson];
-    refreshLessons(newLessons);
+    await refreshLessons(newLessons);
     setSelectedLesson(newLesson);
   }
 
-  function handleDeleteLesson(lesson) {
+  async function handleDeleteLesson(lesson) {
     if (!window.confirm(`Eliminare la lezione "${lesson.lessonNumber}"?`)) return;
     const newLessons = lessons.filter(l => l.lessonNumber !== lesson.lessonNumber);
-    refreshLessons(newLessons);
+    await refreshLessons(newLessons);
     if (selectedLesson?.lessonNumber === lesson.lessonNumber) {
       setSelectedLesson(newLessons[0] || null);
     }
   }
 
-  function startRenameLesson(lesson) {
-    setRenamingLesson(lesson.lessonNumber);
-    setNewLessonName(lesson.lessonNumber);
-  }
-
-  function handleRenameLesson() {
+  async function handleRenameLesson() {
     if (!newLessonName.trim()) {
       alert('Il nome non può essere vuoto');
       return;
@@ -86,7 +89,7 @@ export default function Questions() {
     const newLessons = lessons.map(l =>
       l.lessonNumber === renamingLesson ? { ...l, lessonNumber: newLessonName.trim() } : l
     );
-    refreshLessons(newLessons);
+    await refreshLessons(newLessons);
 
     if (selectedLesson?.lessonNumber === renamingLesson) {
       setSelectedLesson({ ...selectedLesson, lessonNumber: newLessonName.trim() });
@@ -95,7 +98,7 @@ export default function Questions() {
   }
 
   // CRUD domande
-  function handleSaveQuestion(updatedQuestion) {
+  async function handleSaveQuestion(updatedQuestion) {
     if (!selectedLesson) return;
 
     const newLessons = lessons.map(l => {
@@ -112,12 +115,12 @@ export default function Questions() {
       return { ...l, questions };
     });
 
-    refreshLessons(newLessons);
+    await refreshLessons(newLessons);
     setSelectedLesson(newLessons.find(l => l.lessonNumber === selectedLesson.lessonNumber));
     setEditingQuestion(null);
   }
 
-  function handleDeleteQuestion(id) {
+  async function handleDeleteQuestion(id) {
     if (!selectedLesson) return;
 
     if (!window.confirm('Eliminare questa domanda?')) return;
@@ -127,7 +130,7 @@ export default function Questions() {
       return { ...l, questions: l.questions.filter(q => q.id !== id) };
     });
 
-    refreshLessons(newLessons);
+    await refreshLessons(newLessons);
     setSelectedLesson(newLessons.find(l => l.lessonNumber === selectedLesson.lessonNumber));
   }
 
@@ -155,6 +158,10 @@ export default function Questions() {
       .filter(Boolean);
   } else if (selectedLesson) {
     visibleLessons = filteredLessons.filter(l => l.lessonNumber === selectedLesson.lessonNumber);
+  }
+
+  if (loading) {
+    return <div className="text-center mt-10 text-gray-600">Caricamento...</div>;
   }
 
   return (
@@ -229,4 +236,10 @@ export default function Questions() {
       )}
     </div>
   );
+
+  // Funzione per avviare il rename
+  function startRenameLesson(lesson) {
+    setRenamingLesson(lesson.lessonNumber);
+    setNewLessonName(lesson.lessonNumber);
+  }
 }
