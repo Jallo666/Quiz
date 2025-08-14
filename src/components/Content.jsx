@@ -3,6 +3,7 @@ import Import from './Import';
 import Questions from './Questions/Questions';
 import DatabaseManager from './DBManager';
 import QuizHome from './Quiz/QuizHome';
+import ImagesManager from './Images/ImagesManager';
 export default function Content({ activePage }) {
   switch (activePage) {
     case 'home':
@@ -34,6 +35,12 @@ export default function Content({ activePage }) {
       return (
         <main className="p-6 overflow-auto">
           <DatabaseManager />
+        </main>
+      );
+    case 'images':
+      return (
+        <main className="p-6 overflow-auto">
+          <ImagesManager />
         </main>
       );
     default:

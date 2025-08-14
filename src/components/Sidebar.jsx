@@ -7,7 +7,8 @@ const menuItems = [
   { label: 'Domande', page: 'questions' },
   { label: 'Statistiche', page: 'stats' },
   { label: 'Import', page: 'import' },
-  { label: 'Database', page: 'database' }, // nuova voce
+  { label: 'Database', page: 'database' },
+  { label: 'Immagini', page: 'images' },
 ];
   return (
     <>
