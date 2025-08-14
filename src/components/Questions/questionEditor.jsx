@@ -67,6 +67,7 @@ export default function QuestionEditor({ questionData, onSave, onCancel }) {
 
         <label className="block mb-2 font-semibold text-indigo-900">URL immagine (opzionale)</label>
         <ImageInput
+          question={questionData.id}
           value={img}
           onChange={setImg}
           placeholder="https://..."
@@ -104,6 +105,7 @@ export default function QuestionEditor({ questionData, onSave, onCancel }) {
                 />
                 <div className="w-full md:w-1/2">
                   <ImageInput
+                    answer={answers.id}
                     value={a.img}
                     onChange={val => updateAnswer(i, 'img', val)}
                     placeholder="URL immagine (opzionale)"

@@ -146,12 +146,16 @@ export default function Questions() {
 
       const questions = [...l.questions];
       if (updatedQuestion.id) {
+        // Modifica domanda esistente
         const idx = questions.findIndex(q => q.id === updatedQuestion.id);
         if (idx !== -1) questions[idx] = updatedQuestion;
       } else {
-        const newId = `${targetLesson.lessonNumber}-q${Date.now()}`;
+        // Nuova domanda
+        const questionNumber = questions.length + 1; // numero sequenziale
+        const newId = `${targetLesson.lessonNumber}-question-${questionNumber}`;
         questions.push({ ...updatedQuestion, id: newId });
       }
+
       return { ...l, questions };
     });
 
@@ -160,6 +164,7 @@ export default function Questions() {
     setSelectedLessons([updatedTarget]);
     setEditingQuestion(null);
   }
+
 
   async function handleDeleteQuestion(id) {
     if (selectedLessons.length !== 1) {
@@ -254,8 +259,8 @@ export default function Questions() {
             disabled={searchGlobal.trim().length > 0 || selectedLessons.length !== 1}
             title={searchGlobal.trim() ? 'Svuota la ricerca per aggiungere nuova domanda' : 'Nuova domanda'}
             className={`flex items-center px-4 py-2 rounded text-white font-semibold transition-colors ${searchGlobal.trim() || selectedLessons.length !== 1
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-700'
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700'
               }`}
           >
             <FiPlus className="mr-2" /> Nuova domanda

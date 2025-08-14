@@ -17,28 +17,31 @@ async function getDB() {
 }
 
 const imageService = {
-  // Recupera tutte le immagini
   async getAllImages() {
     const db = await getDB();
     return db.getAll(STORE_NAME);
   },
 
-  // Aggiunge una nuova immagine
   async addImage(image) {
     const db = await getDB();
     return db.add(STORE_NAME, image);
   },
 
-  // Aggiorna un’immagine esistente
   async updateImage(image) {
     const db = await getDB();
     return db.put(STORE_NAME, image);
   },
 
-  // Cancella un’immagine tramite ID
   async deleteImage(id) {
     const db = await getDB();
     return db.delete(STORE_NAME, id);
+  },
+
+  // Recupera un’immagine tramite ID e ritorna il base64
+  async getImageById(id) {
+    const db = await getDB();
+    const img = await db.get(STORE_NAME, id);
+    return img ? img.base64 : null;
   },
 };
 
