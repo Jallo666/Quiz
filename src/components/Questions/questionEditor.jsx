@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ImageInput from './ImageInput';
 
 export default function QuestionEditor({ questionData, onSave, onCancel }) {
   const [question, setQuestion] = useState(questionData.question || '');
@@ -65,79 +66,70 @@ export default function QuestionEditor({ questionData, onSave, onCancel }) {
         />
 
         <label className="block mb-2 font-semibold text-indigo-900">URL immagine (opzionale)</label>
-        <input
-          type="text"
-          className="w-full border border-indigo-300 rounded-lg p-3 mb-4 shadow-inner focus:ring-2 focus:ring-indigo-400 transition"
-          placeholder="https://..."
+        <ImageInput
           value={img}
-          onChange={e => setImg(e.target.value)}
+          onChange={setImg}
+          placeholder="https://..."
+          alt="Immagine domanda"
         />
-        {img && (
-          <img
-            src={img}
-            alt="Immagine domanda"
-            className="mb-6 max-h-56 rounded-xl shadow-lg object-contain border border-indigo-200 mx-auto"
-            loading="lazy"
-          />
-        )}
 
         <h4 className="text-xl font-semibold mb-4 text-indigo-800">Risposte</h4>
         <div className="space-y-4 mb-8">
           {answers.map((a, i) => (
             <div
               key={i}
-              className="border border-indigo-300 rounded-xl p-4 bg-white shadow hover:shadow-lg transition flex flex-col md:flex-row md:items-center md:space-x-6"
+              className="border border-indigo-300 rounded-xl bg-white shadow hover:shadow-lg transition flex flex-col"
             >
-              <textarea
-                className="flex-grow border border-indigo-200 rounded-lg p-3 mb-3 md:mb-0 resize-none shadow-inner focus:ring-2 focus:ring-indigo-400 transition"
-                rows={2}
-                placeholder="Testo risposta"
-                value={a.text}
-                onChange={e => updateAnswer(i, 'text', e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="URL immagine (opzionale)"
-                className="border border-indigo-200 rounded-lg p-3 mb-3 md:mb-0 md:w-52 shadow-inner focus:ring-2 focus:ring-indigo-400 transition"
-                value={a.img}
-                onChange={e => updateAnswer(i, 'img', e.target.value)}
-              />
-              {a.img && (
-                <img
-                  src={a.img}
-                  alt={`Immagine risposta ${i + 1}`}
-                  className="max-h-20 rounded-xl border border-indigo-300 shadow-lg object-contain mb-3 md:mb-0"
-                  loading="lazy"
+              {/* Header della card */}
+              <div className="flex justify-between items-center p-3 border-b border-indigo-200">
+                <span className="font-semibold text-indigo-800">Risposta {i + 1}</span>
+                <button
+                  className={`text-red-600 hover:text-red-800 text-2xl font-bold select-none ${answers.length === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => removeAnswer(i)}
+                  disabled={answers.length === 1}
+                  title={answers.length === 1 ? 'Deve esserci almeno una risposta' : 'Elimina risposta'}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Corpo della card */}
+              <div className="flex flex-col md:flex-row md:items-start md:space-x-4 p-3">
+                <textarea
+                  className="w-full md:w-1/2 border border-indigo-200 rounded-lg p-3 mb-3 md:mb-0 resize-none shadow-inner focus:ring-2 focus:ring-indigo-400 transition"
+                  rows={4}
+                  placeholder="Testo risposta"
+                  value={a.text}
+                  onChange={e => updateAnswer(i, 'text', e.target.value)}
                 />
-              )}
-              <label className="flex items-center space-x-2 text-indigo-900 font-semibold whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={a.correct}
-                  onChange={e => updateAnswer(i, 'correct', e.target.checked)}
-                  className="w-5 h-5 rounded border-indigo-400 focus:ring-2 focus:ring-indigo-500 transition"
-                />
-                <span>Corretto</span>
-              </label>
-              <button
-                className={`ml-auto md:ml-0 text-red-600 hover:text-red-800 transition text-2xl font-bold select-none ${
-                  answers.length === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                onClick={() => removeAnswer(i)}
-                disabled={answers.length === 1}
-                title={
-                  answers.length === 1
-                    ? 'Deve esserci almeno una risposta'
-                    : 'Elimina risposta'
-                }
-              >
-                ×
-              </button>
+                <div className="w-full md:w-1/2">
+                  <ImageInput
+                    value={a.img}
+                    onChange={val => updateAnswer(i, 'img', val)}
+                    placeholder="URL immagine (opzionale)"
+                    imgClassName="max-h-28 w-full object-contain"
+                    alt={`Immagine risposta ${i + 1}`}
+                  />
+                </div>
+              </div>
+
+              {/* Footer della card */}
+              <div className="flex justify-end items-center p-3 border-t border-indigo-200">
+                <label className="flex items-center space-x-2 text-indigo-900 font-semibold whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={a.correct}
+                    onChange={e => updateAnswer(i, 'correct', e.target.checked)}
+                    className="w-5 h-5 rounded border-indigo-400 focus:ring-2 focus:ring-indigo-500 transition"
+                  />
+                  <span>Corretto</span>
+                </label>
+              </div>
             </div>
           ))}
           <button
             onClick={addAnswer}
-            className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-md transition"
+            className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white font-extrabold py-3 px-6 rounded-lg shadow-lg transition"
           >
             + Aggiungi risposta
           </button>
