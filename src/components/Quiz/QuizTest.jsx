@@ -1,144 +1,246 @@
-import React, { useState, useEffect, useRef } from "react";
-import ImageRender from "../Images/ImageRender"; // Assicurati di avere questo componente per le immagini
+// QuizTest.jsx
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import ImageRender from "../Images/ImageRender";
+import { showQuizModal } from "../shared/quizModalService";
 export default function QuizTest({
-  lessons,          // array di lezioni con domande
-  quizMode,         // 'oltranza' | 'tempo' | 'numero'
-  timeLimit,        // secondi, se quizMode === 'tempo'
-  maxQuestions,     // numero max di domande se quizMode === 'numero'
-  onFinish,         // callback(datiRisultato) al termine quiz
+  lessons,
+  quizMode,
+  timeLimit,
+  maxQuestions,
+  groupSize = 0,
+  randomOrder = false,
+  groupMode = false,
+  soulsLike = false, // 🔹 nuova prop
+  onFinish,
+  onExitQuiz
 }) {
-  // Flatten tutte le domande da tutte le lezioni
-  const allQuestions = lessons.flatMap((lesson) => lesson.questions);
+  const allQuestions = useMemo(
+    () => lessons.flatMap(lesson => lesson.questions),
+    [lessons]
+  );
 
-  // Se quizMode 'numero', limito domande a maxQuestions, altrimenti tutte
-  const questions =
-    quizMode === "numero"
-      ? allQuestions.slice(0, maxQuestions)
-      : allQuestions;
+  // 🔹 Preparo domande
+  const preparedQuestions = useMemo(() => {
+    let qs = [...allQuestions];
+    if (randomOrder) {
+      for (let i = qs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [qs[i], qs[j]] = [qs[j], qs[i]];
+      }
+    }
+    return maxQuestions ? qs.slice(0, maxQuestions) : qs;
+  }, [allQuestions, randomOrder, maxQuestions]);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
-  const [answersGiven, setAnswersGiven] = useState([]); // { questionId, answerIndex }
+  // 🔹 Se groupMode => divido in blocchi
+  const groupedQuestions = useMemo(() => {
+    if (!groupMode || !groupSize) return [preparedQuestions];
+    const groups = [];
+    for (let i = 0; i < preparedQuestions.length; i += groupSize) {
+      groups.push(preparedQuestions.slice(i, i + groupSize));
+    }
+    return groups;
+  }, [preparedQuestions, groupMode, groupSize]);
+
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answersGiven, setAnswersGiven] = useState([]);
+  const [localAnswers, setLocalAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const timerRef = useRef(null);
 
-  // Timer effetto solo se modalità tempo
+  const currentGroup = groupMode
+    ? groupedQuestions[currentGroupIndex] || []
+    : [preparedQuestions[currentQuestionIndex]];
+
+  // Timer
   useEffect(() => {
-    if (quizMode === "tempo") {
-      setTimeLeft(timeLimit);
-      timerRef.current = setInterval(() => {
-        setTimeLeft((t) => {
-          if (t <= 1) {
-            clearInterval(timerRef.current);
-            handleNext();
-            return 0;
-          }
-          return t - 1;
-        });
-      }, 1000);
-    }
+    if (quizMode !== "tempo") return;
+    setTimeLeft(timeLimit);
+    timerRef.current = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          handleSubmitGroup(true);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [quizMode, timeLimit, currentIndex]);
+  }, [quizMode, timeLimit, currentGroupIndex, currentQuestionIndex]);
 
-  const handleAnswerSelect = (index) => {
-    setSelectedAnswerIndex(index);
+  const handleAnswerSelect = (qId, index) => {
+    setLocalAnswers(prev => ({ ...prev, [qId]: index }));
   };
 
-  const handleNext = () => {
-    if (selectedAnswerIndex !== null) {
-      // Salvo risposta
-      const currentQuestion = questions[currentIndex];
-      setAnswersGiven((prev) => [
-        ...prev,
-        { questionId: currentQuestion.id, answerIndex: selectedAnswerIndex },
-      ]);
-    } else if (quizMode !== "tempo") {
-      // Se non selezionata risposta, in modalità tempo si passa comunque
-      alert("Seleziona una risposta per continuare");
-      return;
+  // 🔹 Reset completo (SoulsLike)
+  const resetQuiz = () => {
+    setCurrentQuestionIndex(0);
+    setCurrentGroupIndex(0);
+    setAnswersGiven([]);
+    setLocalAnswers({});
+  };
+
+  const handleSubmitGroup = (timeUp = false) => {
+    if (!timeUp && groupMode) {
+      const allAnswered = currentGroup.every(q => localAnswers[q.id] !== undefined);
+      if (!allAnswered) {
+        showQuizModal({text:"Rispondi a tutte le domande del gruppo prima di procedere"});
+        return;
+      }
     }
 
-    setSelectedAnswerIndex(null);
+    const newAnswers = currentGroup.map(q => ({
+      questionId: q.id,
+      answerIndex: localAnswers[q.id] ?? null
+    }));
 
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex((i) => i + 1);
+    // 🔹 SoulsLike: se sbagli, resetta
+    if (!groupMode && soulsLike) {
+      const justAnswered = newAnswers[0];
+      const q = preparedQuestions[currentQuestionIndex];
+      if (
+        justAnswered.answerIndex !== null &&
+        !q.answers[justAnswered.answerIndex]?.isCorrect
+      ) {
+        showQuizModal({text:"❌ Hai sbagliato! SoulsLike mode: ricominci da capo!"});
+        resetQuiz();
+        return;
+      }
+    }
+
+    const updatedAnswers = [...answersGiven, ...newAnswers];
+    setAnswersGiven(updatedAnswers);
+    setLocalAnswers({});
+
+    if (groupMode) {
+      if (currentGroupIndex + 1 < groupedQuestions.length) {
+        setCurrentGroupIndex(i => i + 1);
+      } else {
+        if (timerRef.current) clearInterval(timerRef.current);
+        onFinish && onFinish(updatedAnswers);
+      }
     } else {
-      // Fine quiz
-      if (timerRef.current) clearInterval(timerRef.current);
-      onFinish && onFinish(answersGiven);
+      if (currentQuestionIndex + 1 < preparedQuestions.length) {
+        setCurrentQuestionIndex(i => i + 1);
+      } else {
+        if (timerRef.current) clearInterval(timerRef.current);
+        onFinish && onFinish(updatedAnswers);
+      }
     }
   };
 
-  if (questions.length === 0) {
+  if (!preparedQuestions.length) {
     return (
-      <p className="text-center text-gray-600 mt-10">Nessuna domanda disponibile.</p>
+      <p className="text-center text-gray-600 mt-10">
+        Nessuna domanda disponibile.
+      </p>
     );
   }
 
-  const currentQuestion = questions[currentIndex];
-
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      {/* Timer */}
+    <div
+      className={`max-w-3xl mx-auto p-6 rounded-lg shadow-lg h-[85vh] flex flex-col
+    ${soulsLike ? "bg-red-50 border-red-400" : "bg-white border-blue-200"} 
+    border`}
+    >
       {quizMode === "tempo" && (
-        <div className="mb-4 text-right font-semibold text-blue-700">
+        <div className={`mb-4 text-right font-semibold ${soulsLike ? "text-red-700" : "text-blue-700"
+          }`}>
           Tempo rimasto: {timeLeft}s
         </div>
       )}
 
-      {/* Domanda */}
-      <div className="mb-6">
-        <h3 className="text-xl font-bold mb-3 text-blue-800">
-          Domanda {currentIndex + 1} / {questions.length}
-        </h3>
-        <p className="text-lg font-semibold mb-4 whitespace-pre-wrap">{currentQuestion.question}</p>
-        {currentQuestion.img && (
-          <ImageRender
-            src={currentQuestion.img}
-            alt={"Immagine domanda"}
-            className={"max-h-48 rounded-lg mb-4 object-contain border border-blue-300 shadow"}
-            loading="lazy"
-          />
-        )}
+      <h3 className={`text-xl font-bold mb-4 ${soulsLike ? "text-red-800" : "text-blue-800"
+        }`}>
+        {groupMode
+          ? `Gruppo ${currentGroupIndex + 1} / ${groupedQuestions.length}`
+          : `Domanda ${currentQuestionIndex + 1} / ${preparedQuestions.length}`}
+      </h3>
 
-        {/* Risposte */}
-        <ul className="space-y-3">
-          {currentQuestion.answers.map((a, i) => {
-            const isSelected = i === selectedAnswerIndex;
-            return (
-              <li
-                key={i}
-                onClick={() => handleAnswerSelect(i)}
-                className={`cursor-pointer rounded-lg p-3 border transition
-                  ${isSelected ? "bg-blue-600 text-white border-blue-700" : "bg-white border-gray-300 hover:border-blue-400"}
-                `}
-              >
-                {a.text}
-                {a.img && (
+      <div
+        className={`flex-grow overflow-y-auto pr-2 space-y-8`}
+      >
+        <div className="w-full max-w-2xl">
+          {currentGroup.map((q, qIdx) => (
+            <div
+              key={q.id}
+              className={`p-4 rounded-lg border shadow-sm
+            ${soulsLike ? "border-red-500 bg-red-100" : "border-blue-200 bg-white"}`}
+            >
+              <p className={`text-lg font-semibold mb-3 whitespace-pre-wrap ${soulsLike ? "text-red-900" : ""
+                }`}>
+                {groupMode ? `${qIdx + 1}. ` : ""}{q.question}
+              </p>
 
-                  <ImageRender
-                    src={a.img}
-                    alt={`Immagine risposta ${i + 1}`}
-                    className={"max-h-20 mt-2 rounded-md object-contain border border-gray-300 shadow-sm"}
-                    loading="lazy"
-                  />
+              {q.img && (
+                <ImageRender
+                  src={q.img}
+                  alt="Immagine domanda"
+                  className={`max-h-48 rounded-lg mb-3 object-contain shadow
+                ${soulsLike ? "border-red-500" : "border-blue-300"}`}
+                  loading="lazy"
+                />
+              )}
 
-                )}
-              </li>
-            );
-          })}
-        </ul>
+              <ul className="space-y-2">
+                {q.answers.map((a, i) => {
+                  const isSelected = localAnswers[q.id] === i;
+                  return (
+                    <li
+                      key={i}
+                      onClick={() => handleAnswerSelect(q.id, i)}
+                      className={`cursor-pointer rounded-lg p-3 border transition
+                    ${isSelected
+                          ? soulsLike
+                            ? "bg-red-600 text-white border-red-700"
+                            : "bg-blue-600 text-white border-blue-700"
+                          : soulsLike
+                            ? "bg-red-50 border-red-300 hover:border-red-500"
+                            : "bg-white border-gray-300 hover:border-blue-400"
+                        }`}
+                    >
+                      {a.text}
+                      {a.img && (
+                        <ImageRender
+                          src={a.img}
+                          alt={`Immagine risposta ${i + 1}`}
+                          className={`max-h-20 mt-2 rounded-md object-contain shadow-sm
+                        ${soulsLike ? "border-red-400" : "border-gray-300"}`}
+                          loading="lazy"
+                        />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Pulsante avanti o termina */}
-      <div className="text-right">
+      <div className="flex justify-between mt-6">
         <button
-          onClick={handleNext}
-          className="px-6 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+          onClick={onExitQuiz}
+          className={`px-4 py-2 rounded font-semibold transition
+        ${soulsLike ? "bg-red-300 hover:bg-red-400 text-red-800" : "bg-gray-300 hover:bg-gray-400 text-gray-700"}`}
         >
-          {currentIndex + 1 === questions.length ? "Termina Quiz" : "Prossima Domanda"}
+          Esci
+        </button>
+        <button
+          onClick={() => handleSubmitGroup()}
+          className={`px-6 py-2 rounded font-semibold transition
+        ${soulsLike ? "bg-red-600 hover:bg-red-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
+        >
+          {groupMode
+            ? currentGroupIndex + 1 === groupedQuestions.length
+              ? "Termina Quiz"
+              : "Prossimo Gruppo"
+            : currentQuestionIndex + 1 === preparedQuestions.length
+              ? "Termina Quiz"
+              : "Domanda Successiva"}
         </button>
       </div>
     </div>
+
   );
 }
