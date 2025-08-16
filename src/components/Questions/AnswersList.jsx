@@ -1,5 +1,7 @@
 import React from 'react';
 
+import ImageRender from '../Images/ImageRender';
+
 export default function AnswersList({ answers }) {
   return (
     <ul className="ml-6 list-disc text-base space-y-3">
@@ -13,10 +15,11 @@ export default function AnswersList({ answers }) {
           <span className="select-text">{a.text}</span>
 
           {a.img && (
-            <img
+
+            <ImageRender
               src={a.img}
               alt={`Immagine risposta ${i + 1}`}
-              className="max-h-20 rounded-lg mt-2 object-contain border border-gray-300 shadow-sm"
+              className={"max-h-20 rounded-lg mt-2 object-contain border border-gray-300 shadow-sm"}
               loading="lazy"
             />
           )}

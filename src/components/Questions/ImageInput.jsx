@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import ImageUploader from '../Images/ImageUploader';
 import ImageRender from '../Images/ImageRender';
+import ImageRepository from './ImageRepository';
+
 export default function ImageInput({
   value,
   onChange,
@@ -8,7 +10,7 @@ export default function ImageInput({
   className,
   imgClassName,
   alt,
-  defaultMode = 'url', // 'url' | 'repository' | 'upload'
+  defaultMode = 'url',
   question = "",
   answer = "",
 }) {
@@ -22,14 +24,17 @@ export default function ImageInput({
 
   function handleImageUploaded(imageId) {
     onChange('imageId:' + imageId);
-    setMode('repository'); // passa automaticamente alla modalità repository
+    setMode('repository');
+  }
+
+  function handleRepositoryConfirm(image) {
+    if (!image) return;
+    onChange('imageId:' + image.id);
+    setMode('repository');
   }
 
   return (
     <div className="flex flex-col items-start w-full">
-      {/* Toggle a pulsanti */}
-      question:{question}
-      answer:{answer}
       <div className="flex mb-2 space-x-2">
         {modes.map(m => (
           <button
@@ -57,9 +62,10 @@ export default function ImageInput({
       )}
 
       {mode === 'repository' && (
-        <div className="w-full border border-indigo-300 rounded-lg p-3 mb-2 shadow-inner">
-          <span className="text-indigo-400">Seleziona immagine dal repository...</span>
-        </div>
+        <ImageRepository
+          value={value}
+          onConfirm={handleRepositoryConfirm}
+        />
       )}
 
       {mode === 'upload' && (

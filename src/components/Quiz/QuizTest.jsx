@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-
+import ImageRender from "../Images/ImageRender"; // Assicurati di avere questo componente per le immagini
 export default function QuizTest({
   lessons,          // array di lezioni con domande
   quizMode,         // 'oltranza' | 'tempo' | 'numero'
@@ -93,10 +93,10 @@ export default function QuizTest({
         </h3>
         <p className="text-lg font-semibold mb-4 whitespace-pre-wrap">{currentQuestion.question}</p>
         {currentQuestion.img && (
-          <img
+          <ImageRender
             src={currentQuestion.img}
-            alt="Immagine domanda"
-            className="max-h-48 rounded-lg mb-4 object-contain border border-blue-300 shadow"
+            alt={"Immagine domanda"}
+            className={"max-h-48 rounded-lg mb-4 object-contain border border-blue-300 shadow"}
             loading="lazy"
           />
         )}
@@ -115,12 +115,14 @@ export default function QuizTest({
               >
                 {a.text}
                 {a.img && (
-                  <img
+
+                  <ImageRender
                     src={a.img}
                     alt={`Immagine risposta ${i + 1}`}
-                    className="max-h-20 mt-2 rounded-md object-contain border border-gray-300 shadow-sm"
+                    className={"max-h-20 mt-2 rounded-md object-contain border border-gray-300 shadow-sm"}
                     loading="lazy"
                   />
+
                 )}
               </li>
             );

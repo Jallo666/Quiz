@@ -5,7 +5,6 @@ const DB_NAME = 'imagesDB';
 const STORE_NAME = 'images';
 const DB_VERSION = 1;
 
-// Funzione per aprire il DB e creare lo store se non esiste
 async function getDB() {
   return openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {
@@ -24,12 +23,22 @@ const imageService = {
 
   async addImage(image) {
     const db = await getDB();
-    return db.add(STORE_NAME, image);
+    const timestamp = new Date().toISOString();
+    const newImage = {
+      ...image,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    return db.add(STORE_NAME, newImage);
   },
 
   async updateImage(image) {
     const db = await getDB();
-    return db.put(STORE_NAME, image);
+    const updatedImage = {
+      ...image,
+      updatedAt: new Date().toISOString(),
+    };
+    return db.put(STORE_NAME, updatedImage);
   },
 
   async deleteImage(id) {
@@ -37,7 +46,6 @@ const imageService = {
     return db.delete(STORE_NAME, id);
   },
 
-  // Recupera un’immagine tramite ID e ritorna il base64
   async getImageById(id) {
     const db = await getDB();
     const img = await db.get(STORE_NAME, id);

@@ -236,7 +236,7 @@ export default function Questions() {
       {/* Pannello domande */}
       <div className="md:w-3/4 flex flex-col h-full">
         {/* Ricerca globale */}
-        <div className="flex items-center space-x-3 mb-4 p-2 border border-gray-300 rounded shadow-sm bg-white">
+        <div className="flex items-center space-x-3 mb-4 p-2 border border-blue-300 rounded shadow-sm bg-white">
           <div className="relative flex-grow">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             <input
@@ -281,7 +281,7 @@ export default function Questions() {
           <p className="text-gray-500">Seleziona almeno una lezione per vedere le domande</p>
         )}
 
-        <div className="overflow-auto flex-grow border border-gray-300 rounded p-2">
+        <div className="overflow-auto flex-grow border border-blue-300 rounded p-2">
           <QuestionTable
             lessons={visibleLessons}
             searchGlobal={searchGlobal}
