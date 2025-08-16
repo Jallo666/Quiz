@@ -41,11 +41,13 @@ export default function ImportQuestions() {
         const answerText = a.answer.replace(/<img[^>]*>/gi, "").trim();
 
         return {
+          id: `${questionId}-answer-${i + 1}`, // <-- ID unico
           text: answerText,
           correct: String(i) === q.correct_answer,
           img: answerImg,
         };
       });
+
 
       lessonsMap.get(lessonNumber).push({
         id: questionId,
@@ -125,9 +127,8 @@ export default function ImportQuestions() {
 
       {message && (
         <p
-          className={`mb-6 text-sm font-semibold ${
-            message.includes('successo') ? 'text-green-600' : 'text-red-600'
-          }`}
+          className={`mb-6 text-sm font-semibold ${message.includes('successo') ? 'text-green-600' : 'text-red-600'
+            }`}
           role="alert"
         >
           {message}

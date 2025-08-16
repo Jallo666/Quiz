@@ -6,13 +6,23 @@ export default function QuestionEditor({ questionData, onSave, onCancel }) {
   const [img, setImg] = useState(questionData.img || '');
   const [answers, setAnswers] = useState(
     questionData.answers.length > 0
-      ? questionData.answers
-      : [{ text: '', correct: false, img: '' }]
+      ? questionData.answers.map((a, index) => ({
+        ...a,
+        id: a.id || `${questionData.id}-answer-${index + 1}`
+      }))
+      : [{ id: `${questionData.id}-answer-1`, text: '', correct: false, img: '' }]
   );
 
+
+
   function addAnswer() {
-    setAnswers([...answers, { text: '', correct: false, img: '' }]);
+    const lastIndex = answers.length
+      ? Math.max(...answers.map(a => parseInt(a.id.split('-').pop())))
+      : 0;
+    const newId = `${questionData.id}-answer-${lastIndex + 1}`;
+    setAnswers([...answers, { id: newId, text: '', correct: false, img: '' }]);
   }
+
 
   function updateAnswer(index, key, value) {
     const newAnswers = answers.map((a, i) =>
@@ -42,11 +52,13 @@ export default function QuestionEditor({ questionData, onSave, onCancel }) {
       question: question.trim(),
       img: img.trim(),
       answers: answers.map(a => ({
+        id: a.id, // <- id sempre presente
         text: a.text.trim(),
         correct: a.correct,
         img: a.img.trim(),
       })),
     });
+
   }
 
   return (
@@ -105,7 +117,7 @@ export default function QuestionEditor({ questionData, onSave, onCancel }) {
                 />
                 <div className="w-full md:w-1/2">
                   <ImageInput
-                    answer={answers.id}
+                    answer={a.id}
                     value={a.img}
                     onChange={val => updateAnswer(i, 'img', val)}
                     placeholder="URL immagine (opzionale)"

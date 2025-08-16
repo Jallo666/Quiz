@@ -145,15 +145,14 @@ export default function Questions() {
       if (l.lessonNumber !== targetLesson.lessonNumber) return l;
 
       const questions = [...l.questions];
-      if (updatedQuestion.id) {
+      const idx = questions.findIndex(q => q.id === updatedQuestion.id);
+
+      if (idx !== -1) {
         // Modifica domanda esistente
-        const idx = questions.findIndex(q => q.id === updatedQuestion.id);
-        if (idx !== -1) questions[idx] = updatedQuestion;
+        questions[idx] = updatedQuestion;
       } else {
-        // Nuova domanda
-        const questionNumber = questions.length + 1; // numero sequenziale
-        const newId = `${targetLesson.lessonNumber}-question-${questionNumber}`;
-        questions.push({ ...updatedQuestion, id: newId });
+        // Nuova domanda (fallback, in teoria non serve perché l'id è già presente)
+        questions.push(updatedQuestion);
       }
 
       return { ...l, questions };
@@ -164,6 +163,7 @@ export default function Questions() {
     setSelectedLessons([updatedTarget]);
     setEditingQuestion(null);
   }
+
 
 
   async function handleDeleteQuestion(id) {
@@ -249,12 +249,22 @@ export default function Questions() {
           </div>
           <button
             onClick={() => {
-              setEditingQuestion({
-                question: '',
-                answers: [{ text: '', correct: false, img: '' }],
-                img: ''
-              });
-              setSearchGlobal('');
+              if (selectedLessons.length === 1) {
+                const targetLesson = selectedLessons[0];
+                const existingNumbers = targetLesson.questions.map(q =>
+                  parseInt(q.id.split('-question-')[1])
+                );
+                const questionNumber = existingNumbers.length ? Math.max(...existingNumbers) + 1 : 1;
+                const newId = `${targetLesson.lessonNumber}-question-${questionNumber}`;
+
+                setEditingQuestion({
+                  id: newId,
+                  question: '',
+                  answers: [{ text: '', correct: false, img: '' }],
+                  img: ''
+                });
+                setSearchGlobal('');
+              }
             }}
             disabled={searchGlobal.trim().length > 0 || selectedLessons.length !== 1}
             title={searchGlobal.trim() ? 'Svuota la ricerca per aggiungere nuova domanda' : 'Nuova domanda'}

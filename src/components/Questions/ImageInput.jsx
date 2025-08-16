@@ -63,7 +63,7 @@ export default function ImageInput({
       )}
 
       {mode === 'upload' && (
-        <ImageUploader onUploaded={handleImageUploaded} />
+        <ImageUploader question={question} answer={answer} onUploaded={handleImageUploaded} />
       )}
 
       {value && mode !== 'upload' && (

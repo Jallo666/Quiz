@@ -2,7 +2,7 @@
 import React from 'react';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import AnswersList from './AnswersList';
-
+import ImageRender from '../Images/ImageRender';
 export default function QuestionCard({ question, questionNumber, onEdit, onDelete, showActions = true }) {
   return (
     <div
@@ -47,10 +47,10 @@ export default function QuestionCard({ question, questionNumber, onEdit, onDelet
         </p>
 
         {question.img && (
-          <img
+          <ImageRender
             src={question.img}
-            alt="Immagine domanda"
-            className="max-h-48 rounded-2xl mb-6 object-contain shadow-lg border border-blue-200"
+            alt={"Immagine domanda"}
+            className={"max-h-48 rounded-2xl mb-6 object-contain shadow-lg border border-blue-200"}
             loading="lazy"
           />
         )}

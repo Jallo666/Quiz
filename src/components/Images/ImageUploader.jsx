@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import imageService from '../../services/imageService';
-export default function ImageUploader({ onUploaded }) {
+export default function ImageUploader({ onUploaded, question, answer }) {
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -39,8 +39,8 @@ export default function ImageUploader({ onUploaded }) {
             id: uuidv4(),
             description: '',
             base64: preview,
-            questions: [],
-            answers: [],
+            questions: question ? [question] : [],
+            answers: answer ? [answer] : [],
         };
         try {
             await imageService.addImage(newImage);
