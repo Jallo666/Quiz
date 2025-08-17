@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { FiSettings, FiShuffle, FiUsers, FiZap } from "react-icons/fi";
 import QuizTest from "./QuizTest";
+import Quiz3D from "../3D/Quiz3D";
 import QuizResults from "./QuizResults";
 
 export default function QuizConfigurator({ selectedLessons }) {
@@ -14,6 +15,11 @@ export default function QuizConfigurator({ selectedLessons }) {
   const [randomOrder, setRandomOrder] = useState(false);
   const [groupMode, setGroupMode] = useState(false);
 
+  // Aggiungi nello stato
+  const [modo3D, setModo3D] = useState(false);
+
+  // Calcola se la toggle può apparire
+  const show3DToggle = groupMode && soulsLike;
   const totalQuestions = selectedLessons.reduce(
     (sum, lesson) => sum + lesson.questions.length,
     0
@@ -61,9 +67,8 @@ export default function QuizConfigurator({ selectedLessons }) {
           type="button"
           disabled={selectedLessons.length === 0}
           onClick={onStartQuiz}
-          className={`inline-flex justify-center rounded border border-transparent bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-            selectedLessons.length === 0 ? "opacity-50 cursor-not-allowed" : ""
-          }`}
+          className={`inline-flex justify-center rounded border border-transparent bg-blue-600 px-6 py-2 text-sm font-semibold text-white shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${selectedLessons.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
         >
           Avvia Quiz
         </button>
@@ -78,34 +83,53 @@ export default function QuizConfigurator({ selectedLessons }) {
               <FiUsers className="text-blue-600 w-5 h-5" />
               <span className="text-blue-900 font-semibold">Modalità a gruppi</span>
               <div
-                className={`ml-auto w-12 h-6 flex items-center rounded-full p-1 duration-300 ${
-                  groupMode ? "bg-blue-500" : "bg-gray-300"
-                }`}
+                className={`ml-auto w-12 h-6 flex items-center rounded-full p-1 duration-300 ${groupMode ? "bg-blue-500" : "bg-gray-300"
+                  }`}
                 onClick={() => setGroupMode(!groupMode)}
               >
                 <div
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${
-                    groupMode ? "translate-x-6" : ""
-                  }`}
+                  className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${groupMode ? "translate-x-6" : ""
+                    }`}
                 />
               </div>
             </label>
 
+
+            {/* Modalità 3D, solo se groupMode e soulsLike sono attivi */}
+            {soulsLike && (
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <FiZap className="text-purple-600 w-5 h-5" />
+                <span className="text-purple-800 font-semibold">Modalità 3D 🌌</span>
+                <div
+                  className={`ml-auto w-12 h-6 flex items-center rounded-full p-1 duration-300 ${modo3D ? "bg-purple-500" : "bg-gray-300"}`}
+                  onClick={() => {
+                    const newModo3D = !modo3D;
+                    setModo3D(newModo3D);
+                    if (newModo3D) {
+                      setGroupMode(false);   // disabilita gruppi
+                      setSoulsLike(true);    // assicura SoulsLike attivo
+                    }
+                  }}
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${modo3D ? "translate-x-6" : ""}`}
+                  />
+                </div>
+              </label>
+            )}
             {/* SoulsLike */}
             {!groupMode && (
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <FiZap className="text-red-600 w-5 h-5" />
                 <span className="text-red-700 font-semibold">SoulsLike ⚔️</span>
                 <div
-                  className={`ml-auto w-12 h-6 flex items-center rounded-full p-1 duration-300 ${
-                    soulsLike ? "bg-red-500" : "bg-gray-300"
-                  }`}
+                  className={`ml-auto w-12 h-6 flex items-center rounded-full p-1 duration-300 ${soulsLike ? "bg-red-500" : "bg-gray-300"
+                    }`}
                   onClick={() => setSoulsLike(!soulsLike)}
                 >
                   <div
-                    className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${
-                      soulsLike ? "translate-x-6" : ""
-                    }`}
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${soulsLike ? "translate-x-6" : ""
+                      }`}
                   />
                 </div>
               </label>
@@ -116,15 +140,13 @@ export default function QuizConfigurator({ selectedLessons }) {
               <FiShuffle className="text-blue-600 w-5 h-5" />
               <span className="text-blue-900 font-semibold">Domande in ordine casuale</span>
               <div
-                className={`ml-auto w-12 h-6 flex items-center rounded-full p-1 duration-300 ${
-                  randomOrder ? "bg-blue-500" : "bg-gray-300"
-                }`}
+                className={`ml-auto w-12 h-6 flex items-center rounded-full p-1 duration-300 ${randomOrder ? "bg-blue-500" : "bg-gray-300"
+                  }`}
                 onClick={() => setRandomOrder(!randomOrder)}
               >
                 <div
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${
-                    randomOrder ? "translate-x-6" : ""
-                  }`}
+                  className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ${randomOrder ? "translate-x-6" : ""
+                    }`}
                 />
               </div>
             </label>
@@ -222,17 +244,30 @@ export default function QuizConfigurator({ selectedLessons }) {
       )}
 
       {quizStarted && (
-        <QuizTest
-          quizMode={quizMode}
-          maxQuestions={maxQuestions || totalQuestions}
-          groupSize={groupMode ? groupSize : null}
-          lessons={selectedLessons}
-          randomOrder={randomOrder}
-          groupMode={groupMode}
-          soulsLike={soulsLike}
-          onFinish={handleFinish}
-          onExitQuiz={onExitQuiz}
-        />
+        modo3D ? (
+          <Quiz3D
+            maxQuestions={maxQuestions || totalQuestions}
+            groupSize={groupMode ? groupSize : null}
+            lessons={selectedLessons}
+            randomOrder={randomOrder}
+            groupMode={groupMode}
+            soulsLike={soulsLike}
+            onFinish={handleFinish}
+            onExitQuiz={onExitQuiz}
+          />
+        ) : (
+          <QuizTest
+            quizMode={quizMode}
+            maxQuestions={maxQuestions || totalQuestions}
+            groupSize={groupMode ? groupSize : null}
+            lessons={selectedLessons}
+            randomOrder={randomOrder}
+            groupMode={groupMode}
+            soulsLike={soulsLike}
+            onFinish={handleFinish}
+            onExitQuiz={onExitQuiz}
+          />
+        )
       )}
 
       {quizResults && <QuizResults results={quizResults} />}

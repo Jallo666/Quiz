@@ -1,12 +1,37 @@
-# React + Vite
+# Fantasy 3D Scene
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a 3D fantasy scene built with **React Three Fiber** and **@react-three/drei**, featuring animated dragons flying around a castle, dynamic lighting, stars, and a detailed terrain.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## Expanding the ESLint configuration
+- Animated dragons with independent flying paths.
+- Orbit controls to navigate around the scene.
+- Sky and stars for a dynamic background.
+- Central castle mesh.
+- Detailed terrain with mountains, rivers, and forests.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## 3D Assets Attribution
+
+### Animated Dragon
+- **Author / Creator:** [Sketchfab User]  
+- **Model:** [Dragon Animated](https://sketchfab.com/3d-models/dragon-animated-21de294c52994a10974d0466d4915b87?utm_source=chatgpt.com)  
+- **License:** [Creative Commons Attribution (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)  
+- **Notes:** Rotated, scaled, and integrated with custom animations in this project.
+
+### Terrain with Mountains, Rivers, and Forest
+- **Author / Creator:** [Sketchfab User]  
+- **Model:** [Terrain with Mountains, Rivers, and Forest](https://sketchfab.com/3d-models/terrain-with-mountains-rivers-and-forest-de69f9aa593447d9909c9f46b0f6d1f0?utm_source=chatgpt.com)  
+- **License:** [Creative Commons Attribution (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)  
+- **Notes:** Scaled, positioned, and textured for use in this project.
+
+---
+
+## Installation
+
+```bash
+npm install
+npm run dev
