@@ -1,66 +1,19 @@
 import React, { useState } from 'react';
-import questionService from '../services/questionService';
-
+import questionService from '../../services/questionService';
+import { remapRawSource } from '../Import/remapper';
+import { importQuestionsWithProgress } from './lessonImporter';
 export default function ImportQuestions() {
   const [message, setMessage] = useState('');
   const [replaceAll, setReplaceAll] = useState(true);
   const [loading, setLoading] = useState(false);
-
-  function extractImageUrl(htmlString) {
-    if (!htmlString) return "";
-    const imgTagMatch = htmlString.match(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/i);
-    return imgTagMatch ? imgTagMatch[1] : "";
-  }
+  const [progress, setProgress] = useState(0);
+  const [total, setTotal] = useState(0);
 
   function transformData(source) {
     if (Array.isArray(source) && source.length > 0 && source[0].lessonNumber && source[0].questions) {
       return source;
     }
-
-    if (!source?.data?.testSource) {
-      throw new Error("Formato sorgente non valido");
-    }
-
-    const lessonsMap = new Map();
-
-    source.data.testSource.forEach((q, index) => {
-      const lessonNumber = q.titolo_videolezione || "Unknown";
-
-      if (!lessonsMap.has(lessonNumber)) {
-        lessonsMap.set(lessonNumber, []);
-      }
-
-      const lessonKey = lessonNumber.replace(/\s+/g, "-").toLowerCase();
-      const questionId = `${lessonKey}-question-${index + 1}`;
-
-      const questionImg = extractImageUrl(q.question);
-      const questionText = q.question.replace(/<img[^>]*>/gi, "").trim();
-
-      const answers = q.answers.map((a, i) => {
-        const answerImg = extractImageUrl(a.answer);
-        const answerText = a.answer.replace(/<img[^>]*>/gi, "").trim();
-
-        return {
-          id: `${questionId}-answer-${i + 1}`, // <-- ID unico
-          text: answerText,
-          correct: String(i) === q.correct_answer,
-          img: answerImg,
-        };
-      });
-
-
-      lessonsMap.get(lessonNumber).push({
-        id: questionId,
-        question: questionText,
-        img: questionImg,
-        answers,
-      });
-    });
-
-    return Array.from(lessonsMap.entries()).map(([lessonNumber, questions]) => ({
-      lessonNumber,
-      questions,
-    }));
+    return remapRawSource(source);
   }
 
   const handleFileChange = async (e) => {
@@ -69,28 +22,33 @@ export default function ImportQuestions() {
 
     setLoading(true);
     setMessage('');
+    setProgress(0);
+    setTotal(0);
 
     const reader = new FileReader();
-
     reader.onload = async (event) => {
       try {
         const json = JSON.parse(event.target.result);
-        const transformed = transformData(json);
+        const lessons = transformData(json);
 
-        if (replaceAll) {
-          await questionService.saveAllLessons(transformed);
-        } else {
-          await questionService.addLessons(transformed);
-        }
+        // calcolo totale domande
+        const totalQuestions = lessons.reduce((sum, l) => sum + (l.questions?.length || 0), 0);
+        setTotal(totalQuestions);
+
+        // importa con callback di progresso
+        await importQuestionsWithProgress(lessons, {
+          replaceAll,
+          onProgress: (done) => setProgress(done)
+        });
 
         setMessage('Domande importate con successo!');
       } catch (err) {
+        console.error(err);
         setMessage('Errore nel parsing del file JSON o formato non valido.');
       } finally {
         setLoading(false);
       }
     };
-
     reader.readAsText(file);
   };
 
@@ -100,6 +58,8 @@ export default function ImportQuestions() {
     setMessage('Tutte le domande sono state eliminate.');
     setLoading(false);
   };
+
+  const percentage = total > 0 ? Math.round((progress / total) * 100) : 0;
 
   return (
     <div className="p-6 max-w-md mx-auto bg-gradient-to-br from-indigo-50 via-white to-indigo-100 rounded-xl shadow-lg">
@@ -125,10 +85,23 @@ export default function ImportQuestions() {
         className="mb-6 block w-full text-indigo-700 text-sm file:mr-4 file:py-2 file:px-4 file:border file:border-indigo-300 file:rounded-lg file:text-sm file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition"
       />
 
-      {message && (
+      {loading && total > 0 && (
+        <div className="mb-6">
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div
+              className="bg-indigo-600 h-4 rounded-full transition-all duration-300"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <p className="text-sm mt-2 text-indigo-700 font-semibold">
+            {progress} / {total} domande importate ({percentage}%)
+          </p>
+        </div>
+      )}
+
+      {message && !loading && (
         <p
-          className={`mb-6 text-sm font-semibold ${message.includes('successo') ? 'text-green-600' : 'text-red-600'
-            }`}
+          className={`mb-6 text-sm font-semibold ${message.includes('successo') ? 'text-green-600' : 'text-red-600'}`}
           role="alert"
         >
           {message}

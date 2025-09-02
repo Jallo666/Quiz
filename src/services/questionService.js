@@ -75,8 +75,26 @@ async function clearAll() {
   await tx.done;
 }
 
+async function addLesson(newLesson) {
+  const db = await dbPromise;
+  const existing = (await db.get(STORE_NAME, newLesson.lessonNumber)) || { 
+    lessonNumber: newLesson.lessonNumber, 
+    questions: [] 
+  };
+
+  const existingIds = new Set(existing.questions.map(q => q.id));
+
+  newLesson.questions.forEach(q => {
+    if (!existingIds.has(q.id)) existing.questions.push(q);
+  });
+
+  await db.put(STORE_NAME, existing);
+}
+
+
 export default {
   getAllLessons,
+  addLesson,
   saveAllLessons,
   getLesson,
   addQuestion,

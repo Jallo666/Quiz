@@ -1,5 +1,5 @@
 import React from 'react';
-import Import from './Import';
+import Import from './Import/Import';
 import Questions from './Questions/Questions';
 import DatabaseManager from './DBManager';
 import QuizHome from './Quiz/QuizHome';
