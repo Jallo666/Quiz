@@ -61,7 +61,7 @@ export default function QuizHome() {
   );
 
   return (
-    <div className="flex flex-col md:flex-row h-full p-4 mx-auto gap-6">
+    <div className="flex flex-col md:flex-row h-full p-4  mx-auto gap-6">
       {/* Sidebar lezioni */}
       <LessonTable
         lessons={lessons}

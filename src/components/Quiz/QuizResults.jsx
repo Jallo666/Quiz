@@ -1,33 +1,67 @@
 // QuizResults.jsx
 import React from "react";
 
-export default function QuizResults({ results }) {
+export default function QuizResults({ results, lessons }) {
   if (!results || results.length === 0) {
     return <p className="text-gray-600 text-sm">Nessun risultato da mostrare.</p>;
   }
 
+  // Flatten tutte le domande delle lezioni selezionate
+  const allQuestions = lessons.flatMap(l => l.questions);
+
+  const getQuestionData = (id) => allQuestions.find(q => q.id === id);
+
   return (
     <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-300">
-      <h4 className="font-semibold text-green-700 mb-2">Risultati Quiz</h4>
-      <div className="overflow-auto max-h-64">
-        <table className="min-w-full divide-y divide-green-300">
-          <thead className="bg-green-100 border-b border-green-300">
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-green-800 uppercase tracking-wide">ID Domanda</th>
-              <th className="px-4 py-2 text-left text-xs font-semibold text-green-800 uppercase tracking-wide">Risposta Selezionata</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-green-200">
-            {results.map((r, i) => (
-              <tr key={i} className="hover:bg-green-50">
-                <td className="px-4 py-2 text-sm text-green-900">{r.questionId}</td>
-                <td className="px-4 py-2 text-sm text-green-900">
-                  {r.answerIndex !== null ? r.answerIndex + 1 : "Non selezionata"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <h4 className="font-semibold text-green-700 mb-4">Risultati Quiz</h4>
+
+      <div className="space-y-4 max-h-96 overflow-auto pr-2">
+        {results.map((r, i) => {
+          const q = getQuestionData(r.questionId);
+          if (!q) return null;
+
+          const correctIndex = q.answers.findIndex(a => a.correct);
+          const isCorrect = r.answerIndex === correctIndex;
+
+          return (
+            <div
+              key={i}
+              className={`p-4 rounded-lg border ${isCorrect ? "border-green-400 bg-green-100" : "border-red-400 bg-red-100"}`}
+            >
+              <p className="font-medium text-green-900">
+                {i + 1}. {q.question}
+              </p>
+
+              <ul className="mt-2 space-y-1">
+                {q.answers.map((a, idx) => (
+                  <li
+                    key={idx}
+                    className={`px-2 py-1 rounded text-sm flex items-center gap-2 ${
+                      idx === correctIndex
+                        ? "bg-green-200 font-semibold"
+                        : idx === r.answerIndex
+                        ? "bg-red-200"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    {idx + 1}. {a.text}
+                    {a.img && (
+                      <img
+                        src={a.img}
+                        alt="img risposta"
+                        className="h-8 w-8 object-contain"
+                      />
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-2 text-sm">
+                Tua risposta: {r.answerIndex !== null ? r.answerIndex + 1 : "Non selezionata"} {isCorrect ? "✅" : "❌"}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

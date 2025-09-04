@@ -1,4 +1,5 @@
-import React from "react";
+// LessonTable.jsx
+import React, { useState } from "react";
 import {
   FiPlus,
   FiEdit2,
@@ -25,8 +26,10 @@ export default function LessonTable({
   onRenameChange,
   onRenameSave,
   onRenameCancel,
-  enableActions = true, // <-- nuovo boolean con default true
+  enableActions = true,
 }) {
+  const [multiSelectEnabled, setMultiSelectEnabled] = useState(false);
+
   const filteredLessons = lessons.filter((l) =>
     l.lessonNumber.toLowerCase().includes(filterLesson.toLowerCase())
   );
@@ -36,6 +39,14 @@ export default function LessonTable({
     filteredLessons.every((l) =>
       selectedLessons.some((sl) => sl.lessonNumber === l.lessonNumber)
     );
+
+  const handleLessonClick = (lesson) => {
+    if (!multiSelectEnabled) {
+      // se multi select disabilitato, deselezioniamo tutto prima
+      selectedLessons.forEach((sl) => onToggleLessonSelection(sl));
+    }
+    onToggleLessonSelection(lesson);
+  };
 
   return (
     <div className="md:w-1/4 bg-gradient-to-br from-blue-50 via-white to-blue-100 rounded-lg border border-blue-300 p-4 flex flex-col shadow-lg">
@@ -63,13 +74,25 @@ export default function LessonTable({
         )}
       </div>
 
-      {/* Pulsante seleziona tutto */}
-      <button
-        onClick={() => onSelectAll(filteredLessons)}
-        className="mb-3 px-3 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition"
-      >
-        {allSelected ? "Deseleziona tutto" : "Seleziona tutto"}
-      </button>
+      {/* Pulsante seleziona tutto + toggle multi select */}
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={() => onSelectAll(filteredLessons)}
+          className="px-3 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition"
+        >
+          {allSelected ? "Deseleziona tutto" : "Seleziona tutto"}
+        </button>
+
+        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={multiSelectEnabled}
+            onChange={() => setMultiSelectEnabled((prev) => !prev)}
+            className="w-4 h-4"
+          />
+          Multi-select
+        </label>
+      </div>
 
       {/* Lista lezioni */}
       <div className="overflow-y-auto max-h-[280px] md:max-h-none scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-blue-100">
@@ -92,7 +115,7 @@ export default function LessonTable({
                   }`}
                 onClick={() => {
                   if (renamingLesson !== lesson.lessonNumber)
-                    onToggleLessonSelection(lesson);
+                    handleLessonClick(lesson);
                 }}
               >
                 {/* Parte sinistra: checkbox + nome */}
@@ -100,7 +123,7 @@ export default function LessonTable({
                   <input
                     type="checkbox"
                     checked={isSelected}
-                    onChange={() => onToggleLessonSelection(lesson)}
+                    onChange={() => handleLessonClick(lesson)}
                     onClick={(e) => e.stopPropagation()}
                     className="mr-2"
                   />

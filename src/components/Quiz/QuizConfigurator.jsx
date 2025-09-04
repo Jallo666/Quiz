@@ -270,7 +270,13 @@ export default function QuizConfigurator({ selectedLessons }) {
         )
       )}
 
-      {quizResults && <QuizResults results={quizResults} />}
+      {quizResults && (
+  <QuizResults
+    results={quizResults}
+    lessons={selectedLessons} // passo le lezioni selezionate per ottenere le domande
+  />
+)}
+
     </div>
   );
 }
