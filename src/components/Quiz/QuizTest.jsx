@@ -160,7 +160,7 @@ export default function QuizTest({
               {groupMode ? `${qIdx + 1}. ` : ""}{q.question}
             </p>
 
-            {q.img && <ImageRender src={q.img} alt="Immagine domanda" className="max-h-48 rounded-lg mb-3 object-contain shadow" />}
+            {q.img && <ImageRender src={q.img} alt="Immagine domanda" className="w-full max-h-48 rounded-lg mt-2 object-contain shadow" />}
 
             <ul className="space-y-2">
               {q.answers.map((a, i) => {
@@ -171,7 +171,7 @@ export default function QuizTest({
                     key={i}
                     onClick={() => handleAnswerSelect(q.id, i)}
                     className={`cursor-pointer rounded-lg p-3 border transition
-                      ${isSelected
+    ${isSelected
                         ? soulsLike
                           ? "bg-red-600 text-white border-red-700"
                           : "bg-blue-600 text-white border-blue-700"
@@ -184,11 +184,25 @@ export default function QuizTest({
                             : "bg-white border-gray-300 hover:border-blue-400"
                       }`}
                   >
-                    {a.text}
+                    <div className="flex items-start space-x-2 mb-2">
+                      <span className="font-bold">{i + 1}.</span> {/* numero */}
+                      <span>{a.text}</span> {/* testo risposta */}
+                    </div>
+
+                    {a.img && (
+                      <ImageRender
+                        src={a.img}
+                        alt="Immagine risposta"
+                        className="w-full max-h-48 rounded-lg mt-2 object-contain shadow"
+                      />
+                    )}
+
                     {isCorrect && !soulsLike && (
                       <span className="ml-2 text-yellow-500">⭐</span>
                     )}
                   </li>
+
+
                 );
               })}
             </ul>
