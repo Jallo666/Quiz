@@ -17,27 +17,41 @@ export default function QuizTest({
 }) {
   const allQuestions = useMemo(() => lessons.flatMap(l => l.questions), [lessons]);
 
-  // Preparo domande e randomizzo se richiesto
+  const shuffleArray = (array) => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  // preparazione domande (senza toccare l'ordine delle risposte)
   const preparedQuestions = useMemo(() => {
     let qs = [...allQuestions];
     if (randomOrder) {
-      for (let i = qs.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [qs[i], qs[j]] = [qs[j], qs[i]];
-      }
+      qs = shuffleArray(qs);
     }
     return maxQuestions ? qs.slice(0, maxQuestions) : qs;
   }, [allQuestions, randomOrder, maxQuestions]);
 
-  // Divido in gruppi se groupMode
+  // shuffle stabile delle risposte memorizzato in useMemo
+  const shuffledQuestions = useMemo(() => {
+    return preparedQuestions.map(q => ({
+      ...q,
+      shuffledAnswers: shuffleArray(q.answers.map((a, i) => ({ ...a, realIndex: i })))
+    }));
+  }, [preparedQuestions]);
+
+  // raggruppamento
   const groupedQuestions = useMemo(() => {
-    if (!groupMode || !groupSize) return [preparedQuestions];
+    if (!groupMode || !groupSize) return [shuffledQuestions];
     const groups = [];
-    for (let i = 0; i < preparedQuestions.length; i += groupSize) {
-      groups.push(preparedQuestions.slice(i, i + groupSize));
+    for (let i = 0; i < shuffledQuestions.length; i += groupSize) {
+      groups.push(shuffledQuestions.slice(i, i + groupSize));
     }
     return groups;
-  }, [preparedQuestions, groupMode, groupSize]);
+  }, [shuffledQuestions, groupMode, groupSize]);
 
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -49,9 +63,9 @@ export default function QuizTest({
 
   const currentGroup = groupMode
     ? groupedQuestions[currentGroupIndex] || []
-    : [preparedQuestions[currentQuestionIndex]];
+    : [shuffledQuestions[currentQuestionIndex]];
 
-  // Timer
+  // timer
   useEffect(() => {
     if (quizMode !== "tempo") return;
     setTimeLeft(timeLimit);
@@ -67,8 +81,8 @@ export default function QuizTest({
     return () => clearInterval(timerRef.current);
   }, [quizMode, timeLimit, currentGroupIndex, currentQuestionIndex]);
 
-  const handleAnswerSelect = (qId, index) => {
-    setLocalAnswers(prev => ({ ...prev, [qId]: index }));
+  const handleAnswerSelect = (qId, realIndex) => {
+    setLocalAnswers(prev => ({ ...prev, [qId]: realIndex }));
   };
 
   const resetQuiz = () => {
@@ -89,11 +103,12 @@ export default function QuizTest({
 
     const newAnswers = currentGroup.map(q => ({
       questionId: q.id,
-      answerIndex: localAnswers[q.id] ?? null
+      answerIndex: localAnswers[q.id] ?? null // indice reale
     }));
 
+    // modalità soulslike
     if (!groupMode && soulsLike) {
-      const q = preparedQuestions[currentQuestionIndex];
+      const q = shuffledQuestions[currentQuestionIndex];
       const selected = localAnswers[q.id];
       if (selected == null) return;
       if (!q.answers[selected].correct) {
@@ -115,7 +130,7 @@ export default function QuizTest({
         onFinish && onFinish([...answersGiven, ...newAnswers]);
       }
     } else {
-      if (currentQuestionIndex + 1 < preparedQuestions.length) {
+      if (currentQuestionIndex + 1 < shuffledQuestions.length) {
         setCurrentQuestionIndex(i => i + 1);
       } else {
         if (timerRef.current) clearInterval(timerRef.current);
@@ -124,7 +139,7 @@ export default function QuizTest({
     }
   };
 
-  if (!preparedQuestions.length) return (
+  if (!shuffledQuestions.length) return (
     <p className="text-center text-gray-600 mt-10">Nessuna domanda disponibile.</p>
   );
 
@@ -141,7 +156,7 @@ export default function QuizTest({
         <h3 className={`text-xl font-bold ${soulsLike ? "text-red-800" : "text-blue-800"}`}>
           {groupMode
             ? `Gruppo ${currentGroupIndex + 1} / ${groupedQuestions.length}`
-            : `Domanda ${currentQuestionIndex + 1} / ${preparedQuestions.length}`}
+            : `Domanda ${currentQuestionIndex + 1} / ${shuffledQuestions.length}`}
         </h3>
         <button
           className={`px-3 py-1 rounded border font-semibold text-sm
@@ -160,18 +175,24 @@ export default function QuizTest({
               {groupMode ? `${qIdx + 1}. ` : ""}{q.question}
             </p>
 
-            {q.img && <ImageRender src={q.img} alt="Immagine domanda" className="w-full max-h-48 rounded-lg mt-2 object-contain shadow" />}
+            {q.img && (
+              <ImageRender
+                src={q.img}
+                alt="Immagine domanda"
+                className="w-full max-h-48 rounded-lg mt-2 object-contain shadow"
+              />
+            )}
 
             <ul className="space-y-2">
-              {q.answers.map((a, i) => {
-                const isSelected = localAnswers[q.id] === i;
+              {q.shuffledAnswers.map((a, i) => {
+                const isSelected = localAnswers[q.id] === a.realIndex;
                 const isCorrect = a.correct && showHint;
                 return (
                   <li
                     key={i}
-                    onClick={() => handleAnswerSelect(q.id, i)}
+                    onClick={() => handleAnswerSelect(q.id, a.realIndex)}
                     className={`cursor-pointer rounded-lg p-3 border transition
-    ${isSelected
+                      ${isSelected
                         ? soulsLike
                           ? "bg-red-600 text-white border-red-700"
                           : "bg-blue-600 text-white border-blue-700"
@@ -185,8 +206,8 @@ export default function QuizTest({
                       }`}
                   >
                     <div className="flex items-start space-x-2 mb-2">
-                      <span className="font-bold">{i + 1}.</span> {/* numero */}
-                      <span>{a.text}</span> {/* testo risposta */}
+                      <span className="font-bold">{i + 1}.</span>
+                      <span>{a.text}</span>
                     </div>
 
                     {a.img && (
@@ -201,8 +222,6 @@ export default function QuizTest({
                       <span className="ml-2 text-yellow-500">⭐</span>
                     )}
                   </li>
-
-
                 );
               })}
             </ul>
@@ -225,7 +244,7 @@ export default function QuizTest({
             ? currentGroupIndex + 1 === groupedQuestions.length
               ? "Termina Quiz"
               : "Prossimo Gruppo"
-            : currentQuestionIndex + 1 === preparedQuestions.length
+            : currentQuestionIndex + 1 === shuffledQuestions.length
               ? "Termina Quiz"
               : "Domanda Successiva"}
         </button>
