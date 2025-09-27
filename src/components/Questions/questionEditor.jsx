@@ -50,12 +50,12 @@ export default function QuestionEditor({ questionData, onSave, onCancel }) {
     onSave({
       ...questionData,
       question: question.trim(),
-      img: img.trim(),
+      img: img?.trim(),
       answers: answers.map(a => ({
         id: a.id, // <- id sempre presente
         text: a.text.trim(),
         correct: a.correct,
-        img: a.img.trim(),
+        img: a.img?.trim(),
       })),
     });
 

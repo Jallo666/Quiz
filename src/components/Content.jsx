@@ -4,6 +4,7 @@ import Questions from './Questions/Questions';
 import DatabaseManager from './DBManager';
 import QuizHome from './Quiz/QuizHome';
 import ImagesManager from './Images/ImagesManager';
+import StatisticsManager from './Statistic/StatisticsManager';
 export default function Content({ activePage }) {
   switch (activePage) {
     case 'home':
@@ -21,8 +22,7 @@ export default function Content({ activePage }) {
     case 'stats':
       return (
         <main className="p-6 overflow-auto">
-          <h2 className="text-3xl font-semibold mb-4">Statistiche</h2>
-          <p>Qui vedrai le statistiche.</p>
+          <StatisticsManager />
         </main>
       );
     case 'import':
