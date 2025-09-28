@@ -36,6 +36,7 @@ export default function QuestionTable({ lessons, searchGlobal, onEdit, onDelete 
                     onEdit={onEdit}
                     onDelete={onDelete}
                     showActions={!searchGlobal}
+                    lessonNumber={lesson.lessonNumber}
                   />
                 </motion.li>
               ))}

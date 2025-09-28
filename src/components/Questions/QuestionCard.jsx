@@ -3,7 +3,7 @@ import React from 'react';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import AnswersList from './AnswersList';
 import ImageRender from '../Images/ImageRender';
-export default function QuestionCard({ question, questionNumber, onEdit, onDelete, showActions = true }) {
+export default function QuestionCard({ question, questionNumber, onEdit, onDelete, showActions = true , lessonNumber}) {
   return (
     <div
       className="bg-gradient-to-br from-white via-blue-50 to-white rounded-xl shadow-2xl border border-blue-200 overflow-hidden
@@ -15,7 +15,7 @@ export default function QuestionCard({ question, questionNumber, onEdit, onDelet
                    bg-white/60 backdrop-blur-md"
       >
         <span className="font-extrabold text-blue-800 text-lg tracking-wide select-none">
-          Domanda {questionNumber}
+          Domanda {questionNumber} - Lezione: {lessonNumber}
         </span>
 
         {showActions && (
